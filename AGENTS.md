@@ -1,36 +1,26 @@
-# AGENTS.md
+# QR Data Flask Application
+
+## Setup
+```bash
+python -m venv venv
+venv\Scripts\activate
+pip install flask pillow qrcode[pil] openpyxl werkzeug pylibdmtx-windows opencv-python pdf417gen barcode python-python-barcode pyzbar pdf417decoder pyzxing reportlab python-dateutil
+python create_admin.py
+```
 
 ## Commands
-
-### Setup
-```bash
-python -m venv .venv
-.venv/Scripts/activate  # Windows
-pip install flask qrcode pillow openpyxl werkzeug
-```
-
-### Dev Server
-```bash
-cd qr-data-main/project_root
-python run.py
-```
-
-### Running Tests
-No test framework configured.
+- **Dev server**: `python run.py`
+- **Create admin**: `python create_admin.py`
+- **Diagnose login**: `python diagnose_login.py`
 
 ## Tech Stack
-- **Backend**: Flask with SQLite
-- **QR Codes**: qrcode, PIL/Pillow
-- **Forms**: Custom parser for ТОРГ-12, Excel processing with openpyxl
-- **Auth**: Flask sessions with werkzeug password hashing
+- **Backend**: Flask, SQLite
+- **QR/Barcode**: qrcode, pylibdmtx, pyzbar, pdf417gen
+- **Image processing**: PIL, OpenCV, NumPy
+- **File formats**: openpyxl, reportlab
 
 ## Architecture
-- MVC structure: routes/, models/, templates/
-- Data stored in app/data/ (SQLite), storage/ (files)
-- Blueprints: main, auth, admin, forms, scan
-- Core modules: codes.py (QR/barcode gen), forms_parser.py
-
-## Code Style
-- Russian comments and UI text
-- Type hints with typing module
-- Snake_case naming convention
+- Flask blueprints for routing (`auth`, `admin`, `forms`, `scan`)
+- SQLite database with user authentication and history tracking
+- File storage for generated codes and uploads in `app/storage/`
+- Template-based UI with Jinja2

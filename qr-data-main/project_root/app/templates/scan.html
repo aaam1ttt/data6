@@ -31,9 +31,10 @@
         </div>
       </div>
     </div>
-    <div style="display:flex; gap:8px; justify-content:center; margin-top:12px;">
+    <div style="display:flex; gap:8px; justify-content:center; margin-top:12px; flex-wrap:wrap;">
       <button id="captureBtn" class="btn primary" type="button">📸 Сделать снимок</button>
-      <button id="stopCameraBtn" class="btn danger" type="button">⏹ Остановить</button>
+      <button id="cancelScanBtn" class="btn danger" type="button">✕ Отменить сканирование</button>
+      <button id="stopCameraBtn" class="btn" type="button">⏹ Остановить камеру</button>
     </div>
     <div id="cameraError" class="alert error" style="margin-top:8px; display:none;"></div>
   </div>
@@ -66,6 +67,7 @@
     <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
       <button id="copyBtn" class="btn" type="button">Копировать</button>
       <button id="clearBtn" class="btn danger" type="button">Очистить</button>
+      <button id="cancelScanMainBtn" class="btn danger" type="button" style="display:none;">✕ Отменить сканирование</button>
       <a id="openFormBtn" class="btn ok" href="#" style="display:none;">Открыть форму</a>
       <button id="openExcelBtn" class="btn" type="button" style="display:none;">Открыть в Excel</button>
     </div>
@@ -94,6 +96,7 @@
   const clearBtn=document.getElementById('clearBtn');
   const openFormBtn=document.getElementById('openFormBtn');
   const openExcelBtn=document.getElementById('openExcelBtn');
+  const cancelScanMainBtn=document.getElementById('cancelScanMainBtn');
   const excelForm=document.getElementById('excelForm');
   const excelText=document.getElementById('excelText');
   const excelFormType=document.getElementById('excelFormType');
@@ -107,6 +110,7 @@
   const cameraVideo=document.getElementById('cameraVideo');
   const cameraCanvas=document.getElementById('cameraCanvas');
   const captureBtn=document.getElementById('captureBtn');
+  const cancelScanBtn=document.getElementById('cancelScanBtn');
   const stopCameraBtn=document.getElementById('stopCameraBtn');
   const cameraError=document.getElementById('cameraError');
   
@@ -127,7 +131,19 @@
     if(currentController){ currentController.abort(); currentController=null; }
     if(currentTimeoutId){ clearTimeout(currentTimeoutId); currentTimeoutId=null; }
     if(full){ fileInput.value=''; fileInfo.textContent='Размер: — (макс. 20 МБ)'; previewImg.src=''; previewWrap.style.display='none'; }
-    setScanning(false); resultCard.style.display='none'; openFormBtn.style.display='none'; openExcelBtn.style.display='none'; resultText.value=''; resultText.style.height='';
+    setScanning(false); resultCard.style.display='none'; openFormBtn.style.display='none'; openExcelBtn.style.display='none'; cancelScanMainBtn.style.display='none'; resultText.value=''; resultText.style.height='';
+  }
+  
+  function cancelMainScan(){
+    if(currentController){ 
+      currentController.abort(); 
+      currentController=null; 
+      showAlert('success','Сканирование отменено'); 
+      setTimeout(clearAlert,2000);
+    }
+    if(currentTimeoutId){ clearTimeout(currentTimeoutId); currentTimeoutId=null; }
+    setScanning(false); 
+    cancelScanMainBtn.style.display='none';
   }
 
   function clientPreview(file){ const url=URL.createObjectURL(file); previewImg.onload=()=>URL.revokeObjectURL(url); previewImg.src=url; previewWrap.style.display='flex'; }
@@ -156,13 +172,13 @@
       hideCameraError();
       cameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}}); 
       cameraVideo.srcObject=cameraStream;
-      captureBtn.disabled=false; stopCameraBtn.disabled=false;
+      captureBtn.disabled=false; cancelScanBtn.disabled=false; stopCameraBtn.disabled=false;
       
       // Запускаем автоматическое сканирование
       startAutoScan();
     }catch(err){
       showCameraError('Не удалось получить доступ к камере: '+err.message);
-      captureBtn.disabled=true; stopCameraBtn.disabled=true;
+      captureBtn.disabled=true; cancelScanBtn.disabled=true; stopCameraBtn.disabled=true;
     }
   }
   function stopCamera(){
@@ -171,7 +187,27 @@
       cameraStream=null; cameraVideo.srcObject=null;
     }
     stopAutoScan();
-    captureBtn.disabled=true; stopCameraBtn.disabled=true;
+    resetScanStatus();
+    captureBtn.disabled=true; cancelScanBtn.disabled=true; stopCameraBtn.disabled=true;
+  }
+  
+  function resetScanStatus(){
+    scanStatus.textContent='Ищу код...';
+    scanStatus.style.background='rgba(0,0,0,0.7)';
+  }
+  
+  function cancelScanning(){
+    stopAutoScan();
+    resetScanStatus();
+    scanStatus.textContent='Сканирование отменено';
+    scanStatus.style.background='rgba(239,68,68,0.8)';
+    
+    // Показать уведомление об отмене на некоторое время
+    setTimeout(()=>{
+      if(cameraStream && autoScanInterval === null){
+        startAutoScan();
+      }
+    }, 2000);
   }
   
   function startAutoScan(){
@@ -322,21 +358,21 @@
     clearAlert();
     fileInfo.textContent=`Размер: ${formatSize(file.size)} (макс. 20 МБ)`;
     if(file.size>20*1024*1024){ showAlert('error','Файл больше 20 МБ'); return; }
-    clientPreview(file); setScanning(true);
+    clientPreview(file); setScanning(true); cancelScanMainBtn.style.display='inline-block';
     const formData=new FormData(); formData.append('image',file);
     currentController=new AbortController();
-    currentTimeoutId=setTimeout(()=>{ if(currentController){ currentController.abort(); showAlert('error','Ошибка сканирования: слишком долго'); setScanning(false);} },15000);
+    currentTimeoutId=setTimeout(()=>{ if(currentController){ currentController.abort(); showAlert('error','Ошибка сканирования: слишком долго'); setScanning(false); cancelScanMainBtn.style.display='none';} },15000);
     fetch('{{ url_for("scan.scan_api") }}',{method:'POST',body:formData,signal:currentController.signal})
       .then(r=>r.json().catch(()=>({ok:false,error:'Некорректный ответ сервера'})))
       .then(data=>{
         if(currentTimeoutId){ clearTimeout(currentTimeoutId); currentTimeoutId=null; }
-        currentController=null; setScanning(false);
+        currentController=null; setScanning(false); cancelScanMainBtn.style.display='none';
         if(!data||!data.ok){ showAlert('error',(data&&data.error)?data.error:'Ошибка сканирования'); resultCard.style.display='none'; return; }
         codeTypeEl.textContent=`Тип кода: ${data.code_type||'—'}`; resultText.value=data.text||''; resultCard.style.display='block'; autoGrow(resultText);
         if(data.open_url){ openFormBtn.href=data.open_url; openFormBtn.style.display='inline-block'; } else { openFormBtn.style.display='none'; }
         if(data.form_type && TABULAR_FORMS.has(data.form_type)){ excelText.value=data.text||''; excelFormType.value=data.form_type; openExcelBtn.style.display='inline-block'; } else { openExcelBtn.style.display='none'; }
       })
-      .catch(err=>{ if(currentTimeoutId){ clearTimeout(currentTimeoutId); currentTimeoutId=null; } currentController=null; setScanning(false); if(err&&err.name==='AbortError') return; showAlert('error','Ошибка сети при сканировании'); });
+      .catch(err=>{ if(currentTimeoutId){ clearTimeout(currentTimeoutId); currentTimeoutId=null; } currentController=null; setScanning(false); cancelScanMainBtn.style.display='none'; if(err&&err.name==='AbortError') return; showAlert('error','Ошибка сети при сканировании'); });
   }
 
   pickBtn.addEventListener('click',()=>fileInput.click());
@@ -348,6 +384,7 @@
   window.addEventListener('paste',(e)=>{ if(!e.clipboardData||!e.clipboardData.items) return; for(const item of e.clipboardData.items){ if(item.type.startsWith('image/')){ const blob=item.getAsFile(); if(blob){ const file=new File([blob],'clipboard.png',{type:blob.type||'image/png'}); startScan(file); break; } } } });
   copyBtn.addEventListener('click',async ()=>{ try{ await navigator.clipboard.writeText(resultText.value||''); showAlert('success','Скопировано'); setTimeout(clearAlert,1500);}catch{ showAlert('error','Не удалось скопировать'); } });
   clearBtn.addEventListener('click',()=>resetUI());
+  cancelScanMainBtn.addEventListener('click',cancelMainScan);
   openExcelBtn.addEventListener('click',()=>excelForm.submit());
   window.addEventListener('resize',()=>autoGrow(resultText));
 
@@ -356,6 +393,7 @@
   closeCameraBtn.addEventListener('click',hideCameraModal);
   cameraBackdrop.addEventListener('click',hideCameraModal);
   captureBtn.addEventListener('click',captureFromCamera);
+  cancelScanBtn.addEventListener('click',cancelScanning);
   stopCameraBtn.addEventListener('click',hideCameraModal);
   
   // Очистка при закрытии страницы
