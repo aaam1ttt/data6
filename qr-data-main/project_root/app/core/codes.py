@@ -1,11 +1,31 @@
 from typing import Optional, List, Dict
-from PIL import Image
+from PIL import Image, ImageEnhance
 import io
 import os
+from typing import List, Dict
 from .gost_dimensions import (
     get_gost_dimensions, get_dimension_by_code, get_legacy_pixel_size,
     migrate_legacy_size, GostDimension
 )
+
+def _enhance_contrast(img: Image.Image) -> Image.Image:
+    """Enhance image contrast for better scanning"""
+    try:
+        # Convert to RGB if needed
+        if img.mode != 'RGB':
+            img = img.convert('RGB')
+        
+        # Enhance contrast
+        enhancer = ImageEnhance.Contrast(img)
+        img = enhancer.enhance(1.3)  # Increase contrast by 30%
+        
+        # Enhance sharpness
+        sharpness_enhancer = ImageEnhance.Sharpness(img)
+        img = sharpness_enhancer.enhance(1.2)  # Increase sharpness by 20%
+        
+        return img
+    except:
+        return img
 
 def _scale_nearest_exact(img: Image.Image, target: int) -> Image.Image:
     w, h = img.size
@@ -217,6 +237,9 @@ def generate_dm(text: str, size: int = 300, gost_code: str = None) -> Image.Imag
     return scaled
 
 def generate_code128(text: str, size: int = 300, human_text: str = "", gost_code: str = None) -> Image.Image:
+    """
+    Generate Code 128 barcode with improved quality and scanning compatibility
+    """
     try:
         import barcode
         from barcode.writer import ImageWriter
@@ -226,23 +249,25 @@ def generate_code128(text: str, size: int = 300, human_text: str = "", gost_code
             try:
                 gost_dim = get_dimension_by_code(gost_code)
                 actual_height = int(gost_dim.mm_height * 300 / 25.4)
-                internal_size = actual_height * 3
+                internal_size = actual_height * 4  # Increased scale for better quality
             except ValueError:
                 gost_code = None
         
         if not gost_code:
-            dpi_scale_factor = 3
+            dpi_scale_factor = 4  # Increased from 3 to 4 for better scanning
             internal_size = size * dpi_scale_factor
             actual_height = size
         
         code = Code128(text, writer=ImageWriter())
         bio = io.BytesIO()
         
-        target_height_mm = internal_size / dpi_scale_factor / 31.5 * 3
+        # Improved barcode generation options for better scanning
+        # Calculate proper dimensions for Code128
+        bar_height = size * 0.7  # 70% of size for bars
         options = {
-            "module_height": target_height_mm * 2.5,
-            "module_width": 0.33,
-            "quiet_zone": 3.0,
+            "module_height": bar_height / 31.5,  # Convert to mm
+            "module_width": 0.33,  # Standard module width
+            "quiet_zone": 6.0,  # Larger quiet zone for better scanning
             "font_size": 0,
             "text_distance": 5.0,
             "write_text": False,
@@ -253,18 +278,23 @@ def generate_code128(text: str, size: int = 300, human_text: str = "", gost_code
         bio.seek(0)
         img = Image.open(bio).convert("RGB")
         
-        high_res = _scale_preserve_aspect_height(img, internal_size)
+        # Scale to target size maintaining aspect ratio
+        final_img = _scale_preserve_aspect_height(img, size)
         
+        # Add human-readable text if provided
         if human_text:
-            high_res = _add_text_below_barcode(high_res, human_text)
+            final_img = _add_text_below_barcode(final_img, human_text)
         
-        if internal_size != actual_height:
-            return _scale_preserve_aspect_height(high_res, actual_height)
-        return high_res
+        # Enhance contrast for better scanning
+        return _enhance_contrast(final_img)
+        
     except Exception as e:
         raise RuntimeError("Не удалось сгенерировать Code128. Установите 'python-barcode'.") from e
 
 def generate_pdf417(text: str, size: int = 300, human_text: str = "", gost_code: str = None) -> Image.Image:
+    """
+    Generate PDF417 barcode with improved quality and scanning compatibility
+    """
     try:
         import pdf417gen
         
@@ -272,45 +302,72 @@ def generate_pdf417(text: str, size: int = 300, human_text: str = "", gost_code:
             try:
                 gost_dim = get_dimension_by_code(gost_code)
                 actual_height = int(gost_dim.mm_height * 300 / 25.4)
-                internal_size = actual_height * 3
+                internal_size = actual_height * 4  # Increased scale
                 dpi_pixels_per_mm = 31.5
                 target_height_mm = actual_height / dpi_pixels_per_mm
             except ValueError:
                 gost_code = None
         
         if not gost_code:
-            dpi_scale_factor = 3
+            dpi_scale_factor = 4  # Increased from 3 for better quality
             internal_size = size * dpi_scale_factor
             actual_height = size
             dpi_pixels_per_mm = 31.5
             target_height_mm = size / dpi_pixels_per_mm
         
-        codes = pdf417gen.encode(text, columns=6, security_level=2)
-        scale = max(3, int(target_height_mm * 0.5))
+        # PDF417 is known to have scanning issues with some libraries
+        # Use minimal parameters that work best with pyzbar
+        
+        # For small text, use fewer columns
+        if len(text) <= 10:
+            columns = 3
+        elif len(text) <= 20:
+            columns = 4
+        else:
+            columns = 6
+            
+        codes = pdf417gen.encode(
+            text, 
+            columns=columns,
+            security_level=1  # Lower security level for better compatibility
+        )
+        
+        # Use scale that produces good scanning results
+        # Based on testing, scale=8 seems to work better
+        scale = 8
         img = pdf417gen.render_image(codes, scale=scale, ratio=3)
         img = img.convert("RGB")
         
-        high_res = _scale_preserve_aspect_height(img, internal_size)
+        # Don't over-scale - keep original proportions
+        if img.height < size:
+            # Scale up to meet minimum height
+            scale_factor = size / img.height
+            new_width = int(img.width * scale_factor)
+            final_img = img.resize((new_width, size), Image.LANCZOS)
+        else:
+            final_img = img
         
+        # Add human-readable text if provided
         if human_text:
-            high_res = _add_text_below_barcode(high_res, human_text)
+            final_img = _add_text_below_barcode(final_img, human_text)
         
-        if internal_size != actual_height:
-            return _scale_preserve_aspect_height(high_res, actual_height)
-        return high_res
+        # Note: PDF417 scanning may still fail due to library limitations
+        # This is a known issue with pyzbar and PDF417 format compatibility
+        return final_img
+        
     except Exception as e:
         raise RuntimeError("Не удалось сгенерировать PDF417. Установите 'pdf417gen'.") from e
 
 def generate_aztec(text: str, size: int = 300, gost_code: str = None) -> Image.Image:
     """
-    Generate Aztec barcode using treepoem library for proper implementation.
-    Falls back to custom implementation if library is not available.
+    Generate Aztec barcode with improved quality and scanning compatibility.
+    Uses multiple fallback methods for maximum reliability.
     """
+    # Try treepoem first (most reliable)
     try:
-        # Try using treepoem library for proper Aztec generation
         import treepoem
         
-        # Calculate dimensions based on GOST if provided
+        # Calculate dimensions
         if gost_code:
             try:
                 gost_dim = get_dimension_by_code(gost_code)
@@ -320,30 +377,69 @@ def generate_aztec(text: str, size: int = 300, gost_code: str = None) -> Image.I
         else:
             actual_size = size
         
-        # Generate proper Aztec code using treepoem
+        # Generate with improved options
         aztec_img = treepoem.generate_barcode(
             barcode_type='azteccode',
             data=text,
-            options={}
+            options={
+                'eclevel': 23,  # Error correction level
+                'layers': 0,    # Auto-size
+                'format': 'full'  # Full Aztec (not compact)
+            }
         )
         
-        # Convert to RGB if needed
+        # Convert and enhance
         if aztec_img.mode != 'RGB':
             aztec_img = aztec_img.convert('RGB')
         
-        # Scale to desired size
+        # Scale with proper algorithm
         aztec_img = _scale_nearest_exact(aztec_img, actual_size)
         
-        return aztec_img
+        # Enhance contrast for better scanning
+        return _enhance_contrast(aztec_img)
         
     except ImportError:
-        # Fallback to custom implementation if treepoem is not available
-        return _generate_aztec_custom(text, size, gost_code)
+        # Try alternative libraries
+        pass
     except Exception as e:
-        # On any other error, fallback to custom implementation
         import logging
-        logging.warning(f"Treepoem Aztec generation failed: {e}, using custom implementation")
-        return _generate_aztec_custom(text, size, gost_code)
+        logging.warning(f"Treepoem Aztec generation failed: {e}")
+    
+    # Try alternative with python-barcode + aztec extension
+    try:
+        import barcode
+        from barcode.writer import ImageWriter
+        
+        # Some barcode libraries support Aztec
+        if hasattr(barcode, 'get_barcode_class'):
+            try:
+                AztecCode = barcode.get_barcode_class('aztec')
+                code = AztecCode(text, writer=ImageWriter())
+                bio = io.BytesIO()
+                code.write(bio, options={'dpi': 300})
+                bio.seek(0)
+                img = Image.open(bio).convert("RGB")
+                
+                actual_size = size
+                if gost_code:
+                    try:
+                        gost_dim = get_dimension_by_code(gost_code)
+                        actual_size = gost_dim.pixels_300dpi
+                    except ValueError:
+                        pass
+                
+                scaled = _scale_nearest_exact(img, actual_size)
+                return _enhance_contrast(scaled)
+            except:
+                pass
+    except ImportError:
+        pass
+    
+    # Final fallback to custom implementation  
+    # Note: Custom Aztec implementation may not be scanner-compatible
+    # Real Aztec codes require proper error correction and formatting
+    print("Warning: Using custom Aztec implementation - may not scan properly")
+    return _generate_aztec_custom(text, size, gost_code)
 
 def _generate_aztec_custom(text: str, size: int = 300, gost_code: str = None) -> Image.Image:
     """
@@ -571,28 +667,72 @@ def save_image(img: Image.Image, path: str):
     img.save(path, "PNG")
 
 def decode_auto(img: Image.Image) -> List[Dict[str, str]]:
+    """
+    Comprehensive barcode decoder supporting all main types:
+    QR, DataMatrix, Code128, PDF417, Aztec
+    """
     results = []
     
+    # First try pyzbar for most common formats (QR, Code128, PDF417, etc.)
     try:
         from pyzbar import pyzbar
-        decoded_objects = pyzbar.decode(img)
-        for obj in decoded_objects:
-            try:
-                text = obj.data.decode('utf-8')
-                code_type = obj.type
-                results.append({"text": text, "type": code_type})
-            except UnicodeDecodeError:
-                for encoding in ['cp1251', 'latin1', 'ascii']:
+        
+        # Try with different image preprocessing for better detection
+        import numpy as np
+        
+        # Convert to different formats for better detection
+        imgs_to_try = [img]
+        
+        # Try grayscale
+        if img.mode != 'L':
+            imgs_to_try.append(img.convert('L'))
+        
+        # Try inverted (white text on black background)
+        try:
+            from PIL import ImageOps
+            imgs_to_try.append(ImageOps.invert(img))
+            if img.mode != 'L':
+                imgs_to_try.append(ImageOps.invert(img.convert('L')))
+        except:
+            pass
+        
+        for test_img in imgs_to_try:
+            decoded_objects = pyzbar.decode(test_img)
+            if decoded_objects:  # Found something, use it
+                for obj in decoded_objects:
                     try:
-                        text = obj.data.decode(encoding)
-                        code_type = obj.type
+                        text = obj.data.decode('utf-8')
+                        # Map pyzbar types to readable names
+                        type_map = {
+                            'QRCODE': 'QR',
+                            'CODE128': 'CODE128', 
+                            'PDF417': 'PDF417',
+                            'AZTEC': 'AZTEC'
+                        }
+                        code_type = type_map.get(obj.type, obj.type)
                         results.append({"text": text, "type": code_type})
-                        break
-                    except:
-                        continue
+                    except UnicodeDecodeError:
+                        # Try different encodings for non-UTF8 data
+                        for encoding in ['cp1251', 'latin1', 'ascii', 'cp866']:
+                            try:
+                                text = obj.data.decode(encoding)
+                                type_map = {
+                                    'QRCODE': 'QR',
+                                    'CODE128': 'CODE128',
+                                    'PDF417': 'PDF417',
+                                    'AZTEC': 'AZTEC'
+                                }
+                                code_type = type_map.get(obj.type, obj.type)
+                                results.append({"text": text, "type": code_type})
+                                break
+                            except:
+                                continue
+                break  # Found results, stop trying other images
+                
     except ImportError:
         pass
     
+    # If no results from pyzbar, try DataMatrix decoder
     if not results:
         try:
             from pylibdmtx.pylibdmtx import decode as dm_decode
@@ -603,8 +743,62 @@ def decode_auto(img: Image.Image) -> List[Dict[str, str]]:
                         text = result.data.decode('utf-8')
                         results.append({"text": text, "type": "DATAMATRIX"})
                     except UnicodeDecodeError:
-                        pass
+                        for encoding in ['cp1251', 'latin1', 'ascii', 'cp866']:
+                            try:
+                                text = result.data.decode(encoding)
+                                results.append({"text": text, "type": "DATAMATRIX"})
+                                break
+                            except:
+                                continue
         except ImportError:
+            pass
+    
+    # If still no results, try alternative decoders
+    if not results:
+        try:
+            import cv2
+            import numpy as np
+            
+            # Convert PIL image to opencv format
+            img_array = np.array(img)
+            if len(img_array.shape) == 3:
+                img_cv = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
+            else:
+                img_cv = img_array
+            
+            # Try QR decoder
+            detector = cv2.QRCodeDetector()
+            data, points, _ = detector.detectAndDecode(img_cv)
+            if data:
+                results.append({"text": data, "type": "QR"})
+                
+        except ImportError:
+            pass
+        except Exception:
+            pass
+    
+    # Try zxing-cpp if available (better for some formats)
+    if not results:
+        try:
+            import zxingcpp
+            
+            # Convert to numpy array
+            img_array = np.array(img)
+            if len(img_array.shape) == 3:
+                # Convert RGB to grayscale
+                img_gray = np.dot(img_array[...,:3], [0.2989, 0.5870, 0.1140])
+                img_gray = img_gray.astype(np.uint8)
+            else:
+                img_gray = img_array
+            
+            # Try to decode
+            zx_results = zxingcpp.read_barcodes(img_gray)
+            for result in zx_results:
+                results.append({"text": result.text, "type": result.format.name})
+                
+        except ImportError:
+            pass
+        except Exception:
             pass
     
     return results
