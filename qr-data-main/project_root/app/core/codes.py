@@ -27,32 +27,39 @@ def _scale_preserve_aspect_height(img: Image.Image, target_h: int) -> Image.Imag
     return out
 
 def _add_text_below_barcode(img: Image.Image, text: str) -> Image.Image:
-    """Добавляет текст под штрих-код"""
+    """Добавляет текст под штрих-код с увеличенным размером шрифта согласно ГОСТ"""
     try:
         from PIL import ImageDraw, ImageFont
         
-        # Создаем новое изображение с дополнительным местом для текста
-        text_height = 30
+        # Увеличиваем место для текста под штрих-код
+        text_height = 40
         new_img = Image.new('RGB', (img.width, img.height + text_height), 'white')
         new_img.paste(img, (0, 0))
         
         # Рисуем текст
         draw = ImageDraw.Draw(new_img)
         
-        # Пытаемся использовать системный шрифт
+        # Используем увеличенный размер шрифта для соответствия стандартам ГОСТ
+        # и стандартной практике генерации штрих-кодов
+        font_size = 24  # Увеличено с 16 до 24 для лучшей читаемости
         try:
-            font = ImageFont.truetype("arial.ttf", 16)
+            font = ImageFont.truetype("arial.ttf", font_size)
         except:
             try:
-                font = ImageFont.truetype("/System/Library/Fonts/Arial.ttf", 16)
+                font = ImageFont.truetype("/System/Library/Fonts/Arial.ttf", font_size)
             except:
-                font = ImageFont.load_default()
+                try:
+                    # Попытка загрузить системный шрифт Windows
+                    font = ImageFont.truetype("C:/Windows/Fonts/arial.ttf", font_size)
+                except:
+                    # Загружаем дефолтный шрифт с увеличенным размером
+                    font = ImageFont.load_default()
         
         # Центрируем текст
         bbox = draw.textbbox((0, 0), text, font=font)
         text_width = bbox[2] - bbox[0]
         x = (img.width - text_width) // 2
-        y = img.height + 5
+        y = img.height + 8  # Немного увеличиваем отступ от штрих-кода
         
         draw.text((x, y), text, fill='black', font=font)
         
