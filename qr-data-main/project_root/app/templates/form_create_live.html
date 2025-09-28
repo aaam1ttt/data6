@@ -447,6 +447,10 @@
   }
 
   function openPrintWindowSingle(dataUrl, mm){
+    // Store current input focus state before opening print window
+    const activeElement = document.activeElement;
+    const allInputs = document.querySelectorAll('input, textarea');
+    
     const html = `
       <html>
       <head>
@@ -470,6 +474,23 @@
     if (!w) return;
     w.document.write(html);
     w.document.close();
+    
+    // Restore input functionality after print window operations
+    setTimeout(() => {
+      allInputs.forEach(input => {
+        if (input.parentNode) {
+          // Re-enable input responsiveness
+          input.blur();
+          input.focus();
+          input.blur();
+        }
+      });
+      
+      // Restore original focus if it was on an input
+      if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+        setTimeout(() => activeElement.focus(), 50);
+      }
+    }, 400);
   }
 
   function planGridSame(mm){
@@ -481,6 +502,10 @@
   }
 
   function openPrintWindowSame(dataUrl, mm){
+    // Store current input focus state before opening print window
+    const activeElement = document.activeElement;
+    const allInputs = document.querySelectorAll('input, textarea');
+    
     const plan = planGridSame(mm);
     const cells = plan.cols * plan.rows;
     let items = '';
@@ -508,10 +533,32 @@
     if (!w) return;
     w.document.write(html);
     w.document.close();
+    
+    // Restore input functionality after print window operations
+    setTimeout(() => {
+      allInputs.forEach(input => {
+        if (input.parentNode) {
+          // Re-enable input responsiveness
+          input.blur();
+          input.focus();
+          input.blur();
+        }
+      });
+      
+      // Restore original focus if it was on an input
+      if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+        setTimeout(() => activeElement.focus(), 50);
+      }
+    }, 400);
   }
 
   function openPrintWindowQueue(queue){
     if (!queue.length) return;
+    
+    // Store current input focus state before opening print window
+    const activeElement = document.activeElement;
+    const allInputs = document.querySelectorAll('input, textarea');
+    
     const pageW = 210, pageH = 297, margin = 5, gap = 4;
     let x = margin, y = margin, rowH = 0;
     let items = '';
@@ -555,6 +602,23 @@
     if (placed < queue.length){
       showAlert('error', 'Не все коды поместились на один лист A4');
     }
+    
+    // Restore input functionality after print window operations
+    setTimeout(() => {
+      allInputs.forEach(input => {
+        if (input.parentNode) {
+          // Re-enable input responsiveness
+          input.blur();
+          input.focus();
+          input.blur();
+        }
+      });
+      
+      // Restore original focus if it was on an input
+      if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+        setTimeout(() => activeElement.focus(), 50);
+      }
+    }, 400);
   }
 
   // Функции для выпадающего меню

@@ -1,7 +1,10 @@
 # Python virtual environment
 venv/
+.venv/
+env/
+.env/
 
-# Python cache and bytecode
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -19,18 +22,42 @@ parts/
 sdist/
 var/
 wheels/
+pip-wheel-metadata/
 share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
 MANIFEST
 
-# IDE files
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Flask
+instance/
+.webassets-cache
+.flaskenv
+*.db
+*.sqlite
+*.sqlite3
 
 # OS files
 .DS_Store
@@ -41,16 +68,17 @@ MANIFEST
 ehthumbs.db
 Thumbs.db
 
-# Flask
-instance/
-.webassets-cache
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
 # Environment variables
 .env
 .env.local
 .env.*.local
 
-# Database
-*.db
-*.sqlite
-*.sqlite3
+# Logs
+*.log
