@@ -301,6 +301,7 @@
     if (debounceId){ clearTimeout(debounceId); debounceId=null; }
     clearAlert();
     textInput.value = '';
+    humanTextInput.value = '';
     autoGrow(textInput);
     previewImg.src = '';
     lastDataUrl = null;
@@ -612,6 +613,9 @@
 
   textInput.addEventListener('input', () => { autoGrow(textInput); updateLimitInfo(); debouncedGenerate(); });
   textInput.addEventListener('paste', () => { setTimeout(() => { autoGrow(textInput); updateLimitInfo(); debouncedGenerate(); }, 0); });
+
+  humanTextInput.addEventListener('input', debouncedGenerate);
+  humanTextInput.addEventListener('paste', () => { setTimeout(debouncedGenerate, 0); });
 
   allowEdit.addEventListener('change', () => {
     const editable = allowEdit.checked;

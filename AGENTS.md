@@ -2,15 +2,14 @@
 
 ## Commands
 
-### Initial Setup
+### Setup
 ```bash
-# Create and activate virtual environment (project uses standard .venv location)
 python -m venv .venv
-.venv\Scripts\Activate.ps1
-pip install flask werkzeug pillow qrcode[pil]
+.venv/Scripts/activate  # Windows
+pip install flask qrcode pillow openpyxl werkzeug
 ```
 
-### Running Dev Server
+### Dev Server
 ```bash
 cd qr-data-main/project_root
 python run.py
@@ -19,16 +18,19 @@ python run.py
 ### Running Tests
 No test framework configured.
 
-## Tech Stack & Architecture
+## Tech Stack
+- **Backend**: Flask with SQLite
+- **QR Codes**: qrcode, PIL/Pillow
+- **Forms**: Custom parser for ТОРГ-12, Excel processing with openpyxl
+- **Auth**: Flask sessions with werkzeug password hashing
 
-**Backend**: Flask (Python) with SQLite database  
-**Frontend**: HTML templates with Jinja2  
-**Features**: QR code generation, user authentication, file uploads, form processing
+## Architecture
+- MVC structure: routes/, models/, templates/
+- Data stored in app/data/ (SQLite), storage/ (files)
+- Blueprints: main, auth, admin, forms, scan
+- Core modules: codes.py (QR/barcode gen), forms_parser.py
 
-**Structure**: 
-- `app/` - Main Flask application
-- `app/routes/` - Route handlers (main, auth, admin, forms, scan)
-- `app/models/` - Database models (users, history)  
-- `app/core/` - Core utilities (QR codes, forms parser)
-- `app/static/` - Static assets
-- `app/templates/` - Jinja2 templates
+## Code Style
+- Russian comments and UI text
+- Type hints with typing module
+- Snake_case naming convention
