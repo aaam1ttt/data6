@@ -1,12 +1,12 @@
 /* === Главная: две компактные карточки в одну строку === */
 .quick-actions{
   display:flex;
-  gap:16px;
+  gap:20px;
   justify-content:flex-start;
   align-items:stretch;
   /* всегда в одну строку; при узком экране появится горизонтальный скролл */
   overflow-x:auto;
-  padding-bottom:4px;
+  padding-bottom:8px;
 }
 
 .mini-card{
@@ -14,18 +14,24 @@
   min-width: 360px;          /* чтобы не сжималось */
   background: var(--card);
   border:1px solid #22314f;
-  border-radius: 12px;
+  border-radius: 14px;
   display:flex;
   flex-direction:column;
-  gap:10px;
-  padding:12px;
+  gap:14px;
+  padding:16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.mini-card:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 
 .mini-media{
   background:#0b1220;        /* тёмный фон под GIF */
   border:1px solid #22314f;
-  border-radius: 10px;
-  padding:10px;
+  border-radius: 12px;
+  padding:12px;
   display:flex;
   align-items:center;
   justify-content:center;
@@ -45,7 +51,7 @@
   display:flex;
   justify-content:space-between;
   align-items:center;
-  gap:12px;
+  gap:16px;
 }
 
 .mini-body h3{

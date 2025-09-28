@@ -17,29 +17,41 @@
     a{color:var(--accent);text-decoration:none}
     h1,h2,h3{margin:0 0 12px}
     .muted{color:var(--muted)}
-    .btn{display:inline-block;padding:10px 16px;border-radius:10px;background:#334155;color:#fff;border:none;cursor:pointer}
-    .btn.primary{background:var(--accent)}
-    .btn.danger{background:var(--danger)}
-    .btn.ok{background:var(--ok)}
+    .btn{display:inline-block;padding:12px 20px;border-radius:12px;background:#334155;color:#fff;border:1px solid rgba(255,255,255,0.1);cursor:pointer;font-weight:500;letter-spacing:0.3px;transition:all 0.2s ease;margin:4px;box-shadow:0 2px 4px rgba(0,0,0,0.2)}
+    .btn:hover{transform:translateY(-1px);box-shadow:0 4px 8px rgba(0,0,0,0.3);border-color:rgba(255,255,255,0.2)}
+    .btn:active{transform:translateY(0);box-shadow:0 1px 2px rgba(0,0,0,0.2)}
+    .btn.primary{background:var(--accent);border-color:rgba(59,130,246,0.3)}
+    .btn.primary:hover{background:#2563eb;border-color:rgba(37,99,235,0.4)}
+    .btn.danger{background:var(--danger);border-color:rgba(239,68,68,0.3)}
+    .btn.danger:hover{background:#dc2626;border-color:rgba(220,38,38,0.4)}
+    .btn.ok{background:var(--ok);border-color:rgba(16,185,129,0.3)}
+    .btn.ok:hover{background:#059669;border-color:rgba(5,150,105,0.4)}
+    .btn.secondary{background:#475569;border-color:rgba(71,85,105,0.3)}
+    .btn.secondary:hover{background:#3c4956;border-color:rgba(60,73,86,0.4)}
     .alert{padding:10px 12px;border-radius:10px;margin:8px 0}
     .alert.error{background:#3b0d0d;color:#ffb4b4}
     .alert.success{background:#0f2e1f;color:#a7f3d0}
-    input,select,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--input);color:var(--text)}
-    form.grid{display:grid;grid-gap:12px}
-    .two{display:grid;grid-template-columns:1fr 1fr;grid-gap:16px}
+    input,select,textarea{width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--line);background:var(--input);color:var(--text);transition:border-color 0.2s ease}
+    input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px rgba(59,130,246,0.1)}
+    form.grid{display:grid;grid-gap:16px}
+    .two{display:grid;grid-template-columns:1fr 1fr;grid-gap:20px}
     .center{text-align:center}
     .hint{font-size:13px;color:#9ca3af}
     header.topbar{position:relative;display:flex;align-items:center;gap:12px;margin-bottom:24px}
     .brand{font-weight:700;letter-spacing:.3px}
-    .nav{display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap}
-    .nav a{padding:8px 12px;border-radius:10px;background:#334155;color:#fff;white-space:nowrap}
-    .nav a.logout{background:#475569}
-    .nav a.admin{background:var(--accent)}
+    .nav{display:flex;align-items:center;gap:12px;margin-left:auto;flex-wrap:wrap}
+    .nav a{padding:10px 16px;border-radius:12px;background:#334155;color:#fff;white-space:nowrap;border:1px solid rgba(255,255,255,0.1);transition:all 0.2s ease}
+    .nav a:hover{background:#475569;border-color:rgba(255,255,255,0.2);transform:translateY(-1px)}
+    .nav a.logout{background:#475569;border-color:rgba(71,85,105,0.3)}
+    .nav a.logout:hover{background:#3c4956}
+    .nav a.admin{background:var(--accent);border-color:rgba(59,130,246,0.3)}
+    .nav a.admin:hover{background:#2563eb}
     #nav-toggle{display:none}
-    .hamburger{display:none;margin-left:auto;padding:8px 12px;border-radius:10px;background:#334155;color:#fff;cursor:pointer;user-select:none}
+    .hamburger{display:none;margin-left:auto;padding:10px 14px;border-radius:12px;background:#334155;color:#fff;cursor:pointer;user-select:none;border:1px solid rgba(255,255,255,0.1);transition:all 0.2s ease}
+    .hamburger:hover{background:#475569;border-color:rgba(255,255,255,0.2)}
     @media (max-width:900px){
       .hamburger{display:block}
-      .nav{display:none;position:absolute;top:100%;right:0;left:0;background:var(--card);padding:12px 16px;border-radius:12px;flex-direction:column;gap:10px;margin-top:8px;z-index:100}
+      .nav{display:none;position:absolute;top:100%;right:0;left:0;background:var(--card);padding:16px 20px;border-radius:12px;flex-direction:column;gap:12px;margin-top:8px;z-index:100;border:1px solid var(--line);box-shadow:0 8px 16px rgba(0,0,0,0.3)}
       #nav-toggle:checked + label.hamburger + nav.nav{display:flex}
     }
     table{width:100%;border-collapse:separate;border-spacing:0;overflow:hidden;border-radius:10px}
@@ -48,19 +60,54 @@
     tbody tr:nth-child(2n){background:var(--cell2)}
     tbody tr:nth-child(2n+1){background:var(--cell)}
     td input,td select,td textarea{background:#0b152a;border-color:#2b3a55}
-    .row-actions form{display:inline;margin-right:6px}
+    .row-actions form{display:inline;margin-right:8px}
+    .row-actions .btn{padding:8px 12px;font-size:13px}
     .counter{font-size:13px;margin-top:6px}
     .counter.warn{color:#ffcc66}
     .counter.bad{color:#ff8080}
+    /* === Центрированные кнопки для меню === */
+    .center-buttons{
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+      align-items:center;
+      margin:24px 0;
+    }
+    .bigbtn{
+      display:inline-block;
+      padding:16px 32px;
+      background:var(--accent);
+      color:#fff;
+      text-decoration:none;
+      border-radius:12px;
+      font-size:16px;
+      font-weight:600;
+      text-align:center;
+      min-width:280px;
+      border:1px solid rgba(59,130,246,0.3);
+      transition:all 0.2s ease;
+      box-shadow:0 2px 4px rgba(0,0,0,0.2);
+    }
+    .bigbtn:hover{
+      background:#2563eb;
+      border-color:rgba(37,99,235,0.4);
+      transform:translateY(-1px);
+      box-shadow:0 4px 8px rgba(0,0,0,0.3);
+    }
+    .bigbtn:active{
+      transform:translateY(0);
+      box-shadow:0 1px 2px rgba(0,0,0,0.2);
+    }
+    
     /* === Главная: мини-карточки (две в одну строку) === */
 /* === Главная: две квадратные плитки по центру === */
 .hero-actions{
   display:flex;
   justify-content:center;     /* по центру */
   align-items:flex-start;
-  gap:28px;                   /* расстояние между плитками */
+  gap:36px;                   /* увеличенное расстояние между плитками */
   flex-wrap:wrap;             /* на узком экране уйдут в столбик */
-  margin-top:18px;
+  margin-top:24px;            /* увеличенный отступ сверху */
 }
 
 .square{
@@ -85,7 +132,10 @@
 
 .square .btn{
   width:100%;
-  margin-top:12px;
+  margin-top:16px;
+  padding:14px 20px;
+  font-size:16px;
+  font-weight:600;
 }
   </style>
   <script src="{{ url_for('static', filename='print-fix.js') }}"></script>

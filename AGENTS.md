@@ -1,4 +1,4 @@
-# QR Data Flask Application
+# AGENTS.md
 
 ## Commands
 
@@ -15,7 +15,7 @@ cd qr-data-main\project_root
 python -c "from app import create_app; app = create_app(); print('Build successful')"
 ```
 
-### Dev Server
+### Run Dev Server
 ```bash
 cd qr-data-main\project_root
 python run.py
@@ -32,7 +32,8 @@ python diagnose_login.py
 ```
 
 ## Tech Stack & Architecture
-- **Flask** web application with SQLite database
+- **Framework**: Flask (Python web framework)
+- **Database**: SQLite with custom extensions
 - **QR/Barcode generation**: qrcode, pylibdmtx, python-barcode, pdf417gen
 - **Image processing**: PIL, OpenCV, numpy
 - **File formats**: openpyxl, reportlab
@@ -45,3 +46,4 @@ python diagnose_login.py
 - Snake_case for variables/functions
 - Blueprint registration pattern
 - Manual database connection management via Flask g
+- Type hints where applicable

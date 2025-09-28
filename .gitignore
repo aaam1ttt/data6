@@ -4,7 +4,7 @@ venv/
 env/
 .env/
 
-# Python
+# Python cache
 __pycache__/
 *.py[cod]
 *$py.class
@@ -58,6 +58,7 @@ instance/
 *.db
 *.sqlite
 *.sqlite3
+.env
 
 # OS files
 .DS_Store
@@ -76,9 +77,12 @@ Thumbs.db
 *~
 
 # Environment variables
-.env
 .env.local
 .env.*.local
 
 # Logs
 *.log
+
+# Temporary files
+.tmp/
+temp/
