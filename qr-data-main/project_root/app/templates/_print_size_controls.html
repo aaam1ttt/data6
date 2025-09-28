@@ -8,9 +8,30 @@
         <!-- Options will be populated by JavaScript -->
       </select>
     </div>
-    <button id="printExecuteBtn" class="dropdown-item" type="button">Печать с выбранным размером</button>
+    <button id="printExecuteBtn" class="dropdown-item" type="button">Печать</button>
+    <button id="multiSameBtn" class="dropdown-item" type="button">Печать несколько одинаковых</button>
+    <button id="queueAddBtn" class="dropdown-item" type="button">Добавить в очередь</button>
+    <button id="queuePrintBtn" class="dropdown-item" type="button">Печать несколько разных</button>
+    <button id="viewQueueBtn" class="dropdown-item" type="button">Посмотреть очередь</button>
+    <button id="queueClearBtn" class="dropdown-item danger" type="button">Очистить очередь</button>
   </div>
 </div>
+
+<!-- Модальное окно очереди печати -->
+<div id="queueModal" class="card" style="position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:1000; display:none; max-width:80vw; max-height:80vh; background:#1e293b; border:2px solid #374151; overflow-y:auto;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+    <h3 style="margin:0;">Очередь печати</h3>
+    <button id="closeQueueBtn" class="btn danger" style="padding:4px 8px;">✕</button>
+  </div>
+  <div id="queueList" style="max-height:400px; overflow-y:auto;">
+    <!-- Элементы очереди будут добавлены здесь -->
+  </div>
+  <div style="display:flex; gap:8px; justify-content:center; margin-top:12px;">
+    <button id="printAllQueueBtn" class="btn primary" type="button">Печать все</button>
+    <button id="clearAllQueueBtn" class="btn danger" type="button">Очистить все</button>
+  </div>
+</div>
+<div id="queueBackdrop" style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:999; display:none;"></div>
 
 <style>
   .dropdown-item {
@@ -57,6 +78,11 @@
     const printDropdown = document.getElementById('printDropdown');
     const printSizeSelect = document.getElementById('printSizeSelect');
     const printExecuteBtn = document.getElementById('printExecuteBtn');
+    const multiSameBtn = document.getElementById('multiSameBtn');
+    const queueAddBtn = document.getElementById('queueAddBtn');
+    const queuePrintBtn = document.getElementById('queuePrintBtn');
+    const viewQueueBtn = document.getElementById('viewQueueBtn');
+    const queueClearBtn = document.getElementById('queueClearBtn');
 
     if (!printBtn || !printDropdown || !printSizeSelect || !printExecuteBtn) return;
 
@@ -141,9 +167,237 @@
       }
     }
 
+    // Print multiple same codes
+    function printMultipleSame() {
+      const count = parseInt(prompt('Сколько одинаковых кодов напечатать?', '2'));
+      if (!count || count < 1 || count > 20) return;
+
+      const selectedSize = parseInt(printSizeSelect.value);
+      const selectedMM = parseFloat(printSizeSelect.selectedOptions[0].dataset.mm);
+      
+      fetch('{{ url_for("forms.api_generate_code") }}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: encodedText,
+          code_type: codeType,
+          size: selectedSize
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (!data || !data.ok) {
+          alert('Ошибка генерации кода');
+          return;
+        }
+
+        let htmlCodes = '';
+        for (let i = 0; i < count; i++) {
+          htmlCodes += `<img class="code" src="${data.data_url}" style="width:${selectedMM}mm; height:${selectedMM}mm; margin:2mm; image-rendering: pixelated;">`;
+        }
+
+        const html = `
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <title>Печать ${count} кодов</title>
+            <style>
+              @page { size: A4; margin: 5mm; }
+              html,body { margin:0; padding:0; }
+              .codes { display:flex; flex-wrap:wrap; align-content:flex-start; }
+            </style>
+          </head>
+          <body>
+            <div class="codes">${htmlCodes}</div>
+            <script>window.onload = () => { window.print(); setTimeout(() => window.close(), 300); }<\/script>
+          </body>
+          </html>`;
+        
+        const w = window.open('', '_blank');
+        if (w) {
+          w.document.write(html);
+          w.document.close();
+        }
+        
+        hidePrintDropdown();
+      })
+      .catch(error => alert('Ошибка сети при печати'));
+    }
+
+    // Print queue functionality
+    let printQueue = JSON.parse(localStorage.getItem('printQueue') || '[]');
+
+    function addToQueue() {
+      const selectedSize = parseInt(printSizeSelect.value);
+      const item = {
+        text: encodedText,
+        code_type: codeType,
+        size: selectedSize,
+        timestamp: Date.now()
+      };
+      printQueue.push(item);
+      localStorage.setItem('printQueue', JSON.stringify(printQueue));
+      alert('Код добавлен в очередь печати');
+      hidePrintDropdown();
+    }
+
+    function viewQueue() {
+      if (printQueue.length === 0) {
+        alert('Очередь печати пуста');
+        return;
+      }
+      
+      // Show modal with queue contents
+      const queueModal = document.getElementById('queueModal');
+      const queueBackdrop = document.getElementById('queueBackdrop');
+      const queueList = document.getElementById('queueList');
+      const closeQueueBtn = document.getElementById('closeQueueBtn');
+      const printAllQueueBtn = document.getElementById('printAllQueueBtn');
+      const clearAllQueueBtn = document.getElementById('clearAllQueueBtn');
+      
+      if (!queueModal || !queueBackdrop || !queueList) {
+        // Fallback to alert if modal not found
+        let msg = `Очередь печати (${printQueue.length} элементов):\n\n`;
+        printQueue.forEach((item, i) => {
+          const text = item.text.length > 30 ? item.text.substring(0, 30) + '...' : item.text;
+          msg += `${i+1}. ${item.code_type} ${item.size}px: ${text}\n`;
+        });
+        alert(msg);
+        hidePrintDropdown();
+        return;
+      }
+
+      // Populate queue list
+      queueList.innerHTML = '';
+      printQueue.forEach((item, i) => {
+        const div = document.createElement('div');
+        div.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:8px; border-bottom:1px solid #374151; font-size:14px;';
+        
+        const text = item.text.length > 50 ? item.text.substring(0, 50) + '...' : item.text;
+        div.innerHTML = `
+          <span>${item.code_type} ${item.size}px: ${text}</span>
+          <button class="btn danger" style="padding:2px 6px; font-size:12px;" onclick="removeFromQueue(${i})">Удалить</button>
+        `;
+        queueList.appendChild(div);
+      });
+
+      // Show modal
+      queueModal.style.display = 'block';
+      queueBackdrop.style.display = 'block';
+      hidePrintDropdown();
+
+      // Modal event handlers
+      function closeModal() {
+        queueModal.style.display = 'none';
+        queueBackdrop.style.display = 'none';
+      }
+
+      if (closeQueueBtn) closeQueueBtn.onclick = closeModal;
+      if (queueBackdrop) queueBackdrop.onclick = closeModal;
+      if (printAllQueueBtn) printAllQueueBtn.onclick = () => {
+        closeModal();
+        printQueue();
+      };
+      if (clearAllQueueBtn) clearAllQueueBtn.onclick = () => {
+        if (confirm('Очистить всю очередь печати?')) {
+          printQueue = [];
+          localStorage.setItem('printQueue', JSON.stringify(printQueue));
+          closeModal();
+        }
+      };
+
+      // Function to remove individual items (global scope)
+      window.removeFromQueue = function(index) {
+        printQueue.splice(index, 1);
+        localStorage.setItem('printQueue', JSON.stringify(printQueue));
+        viewQueue(); // Refresh the modal
+      };
+    }
+
+    function printAllQueue() {
+      if (printQueue.length === 0) {
+        alert('Очередь печати пуста');
+        return;
+      }
+
+      let allCodes = [];
+      let processedCount = 0;
+
+      printQueue.forEach((item, index) => {
+        fetch('{{ url_for("forms.api_generate_code") }}', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: item.text,
+            code_type: item.code_type,
+            size: item.size
+          })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data && data.ok) {
+            const mm = (PRINT_PRESETS[item.code_type] || PRINT_PRESETS.QR).find(p => p.px === item.size)?.mm || 20;
+            allCodes.push({
+              dataUrl: data.data_url,
+              mm: mm
+            });
+          }
+          
+          processedCount++;
+          if (processedCount === printQueue.length) {
+            // All codes generated, print them
+            let htmlCodes = '';
+            allCodes.forEach(code => {
+              htmlCodes += `<img src="${code.dataUrl}" style="width:${code.mm}mm; height:${code.mm}mm; margin:2mm; image-rendering: pixelated;">`;
+            });
+
+            const html = `
+              <html>
+              <head>
+                <meta charset="utf-8">
+                <title>Печать очереди (${allCodes.length} кодов)</title>
+                <style>
+                  @page { size: A4; margin: 5mm; }
+                  html,body { margin:0; padding:0; }
+                  .codes { display:flex; flex-wrap:wrap; align-content:flex-start; }
+                </style>
+              </head>
+              <body>
+                <div class="codes">${htmlCodes}</div>
+                <script>window.onload = () => { window.print(); setTimeout(() => window.close(), 300); }<\/script>
+              </body>
+              </html>`;
+            
+            const w = window.open('', '_blank');
+            if (w) {
+              w.document.write(html);
+              w.document.close();
+            }
+          }
+        })
+        .catch(() => processedCount++);
+      });
+
+      hidePrintDropdown();
+    }
+
+    function clearQueue() {
+      if (confirm('Очистить очередь печати?')) {
+        printQueue = [];
+        localStorage.setItem('printQueue', JSON.stringify(printQueue));
+        alert('Очередь печати очищена');
+      }
+      hidePrintDropdown();
+    }
+
     // Event listeners
     printBtn.addEventListener('click', togglePrintDropdown);
     printExecuteBtn.addEventListener('click', printWithSelectedSize);
+    if (multiSameBtn) multiSameBtn.addEventListener('click', printMultipleSame);
+    if (queueAddBtn) queueAddBtn.addEventListener('click', addToQueue);
+    if (queuePrintBtn) queuePrintBtn.addEventListener('click', printAllQueue);
+    if (viewQueueBtn) viewQueueBtn.addEventListener('click', viewQueue);
+    if (queueClearBtn) queueClearBtn.addEventListener('click', clearQueue);
 
     // Close dropdown when clicking outside
     document.addEventListener('click', (e) => {
