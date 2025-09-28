@@ -1,55 +1,153 @@
-// Print functionality fix for input field responsiveness after print preview
+// Enhanced print functionality fix for input field responsiveness after print preview
 (function() {
   'use strict';
 
-  // Store references to all input fields for re-initialization
+  // Store references to all input fields and their states
   let inputElements = [];
   let textareaElements = [];
   let originalEventListeners = new Map();
+  let focusState = {
+    activeElement: null,
+    selectionStart: 0,
+    selectionEnd: 0,
+    scrollPosition: 0
+  };
 
   function storeInputReferences() {
     // Store all input and textarea elements
-    inputElements = Array.from(document.querySelectorAll('input[type="text"], input[type="number"], input:not([type])'));
+    inputElements = Array.from(document.querySelectorAll('input[type="text"], input[type="number"], input:not([type]), input[type="email"], input[type="tel"]'));
     textareaElements = Array.from(document.querySelectorAll('textarea'));
+    
+    // Store current focus state
+    const activeEl = document.activeElement;
+    if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
+      focusState = {
+        activeElement: activeEl,
+        selectionStart: activeEl.selectionStart || 0,
+        selectionEnd: activeEl.selectionEnd || 0,
+        scrollPosition: activeEl.scrollTop || 0
+      };
+    }
   }
 
   function restoreInputFunctionality() {
-    // Re-focus and re-initialize input fields after print
-    setTimeout(() => {
-      // Restore focus capability and event listeners for input fields
-      inputElements.forEach(input => {
-        if (input && input.parentNode) {
-          // Force re-focus capability
-          input.blur();
-          input.focus();
-          input.blur();
-          
-          // Re-trigger any stored event listeners
-          const storedListeners = originalEventListeners.get(input);
-          if (storedListeners) {
-            storedListeners.forEach(listenerInfo => {
-              input.addEventListener(listenerInfo.type, listenerInfo.listener, listenerInfo.options);
-            });
-          }
-        }
-      });
+    // Use multiple restoration attempts with increasing delays for better browser compatibility
+    const delays = [50, 150, 300, 500, 1000];
+    
+    delays.forEach(delay => {
+      setTimeout(() => {
+        restoreInputsWithDelay();
+      }, delay);
+    });
+  }
 
-      // Same for textarea elements
-      textareaElements.forEach(textarea => {
-        if (textarea && textarea.parentNode) {
-          textarea.blur();
-          textarea.focus();
-          textarea.blur();
+  function restoreInputsWithDelay() {
+    // Restore all input fields
+    [...inputElements, ...textareaElements].forEach(input => {
+      if (input && input.parentNode && input.offsetParent !== null) {
+        try {
+          // Multiple restoration techniques for better browser compatibility
           
-          const storedListeners = originalEventListeners.get(textarea);
-          if (storedListeners) {
-            storedListeners.forEach(listenerInfo => {
-              textarea.addEventListener(listenerInfo.type, listenerInfo.listener, listenerInfo.options);
-            });
+          // 1. Remove and re-add to DOM (most reliable)
+          const parent = input.parentNode;
+          const nextSibling = input.nextSibling;
+          const inputClone = input.cloneNode(true);
+          
+          // Copy all properties
+          inputClone.value = input.value;
+          inputClone.disabled = input.disabled;
+          inputClone.readonly = input.readonly;
+          
+          // Copy event listeners if they exist
+          const events = ['input', 'change', 'keyup', 'keydown', 'focus', 'blur', 'paste'];
+          events.forEach(eventType => {
+            if (input['on' + eventType]) {
+              inputClone['on' + eventType] = input['on' + eventType];
+            }
+          });
+          
+          // Replace the element
+          parent.insertBefore(inputClone, nextSibling);
+          parent.removeChild(input);
+          
+          // Update our reference
+          const index = inputElements.indexOf(input);
+          if (index !== -1) {
+            inputElements[index] = inputClone;
+          } else {
+            const textareaIndex = textareaElements.indexOf(input);
+            if (textareaIndex !== -1) {
+              textareaElements[textareaIndex] = inputClone;
+            }
+          }
+          
+        } catch (e) {
+          // Fallback method if DOM manipulation fails
+          try {
+            // Force re-initialization of input element
+            input.blur();
+            input.style.pointerEvents = 'none';
+            setTimeout(() => {
+              input.style.pointerEvents = 'auto';
+              input.focus();
+              input.blur();
+              
+              // Force re-render
+              const display = input.style.display;
+              input.style.display = 'none';
+              input.offsetHeight; // Trigger reflow
+              input.style.display = display;
+              
+            }, 10);
+          } catch (fallbackError) {
+            console.warn('Failed to restore input functionality:', fallbackError);
           }
         }
-      });
-    }, 100);
+      }
+    });
+    
+    // Restore focus state
+    if (focusState.activeElement && focusState.activeElement.offsetParent !== null) {
+      setTimeout(() => {
+        try {
+          focusState.activeElement.focus();
+          if (focusState.activeElement.setSelectionRange) {
+            focusState.activeElement.setSelectionRange(focusState.selectionStart, focusState.selectionEnd);
+          }
+          focusState.activeElement.scrollTop = focusState.scrollPosition;
+        } catch (e) {
+          console.warn('Failed to restore focus state:', e);
+        }
+      }, 100);
+    }
+  }
+
+  // Enhanced window focus detection for tab switching
+  function handleTabFocus() {
+    document.addEventListener('visibilitychange', function() {
+      if (!document.hidden) {
+        // Tab became visible again - likely returning from print preview
+        setTimeout(() => {
+          restoreInputFunctionality();
+        }, 200);
+      }
+    });
+    
+    window.addEventListener('focus', function() {
+      // Window gained focus - possibly returning from print dialog
+      setTimeout(() => {
+        restoreInputFunctionality();
+      }, 300);
+    });
+    
+    // Page show event (for back/forward navigation or tab switching)
+    window.addEventListener('pageshow', function(event) {
+      if (event.persisted || performance.navigation.type === 2) {
+        setTimeout(() => {
+          restoreInputFunctionality();
+        }, 100);
+      }
+    });
   }
 
   function enhancePrintFunction(originalPrintFn) {
@@ -61,48 +159,104 @@
       const result = originalPrintFn.apply(this, args);
       
       // Restore input functionality after print
-      restoreInputFunctionality();
+      setTimeout(() => {
+        restoreInputFunctionality();
+      }, 100);
       
       return result;
     };
   }
 
   // Override window.print to handle the restoration
-  const originalWindowPrint = window.print;
-  window.print = enhancePrintFunction(originalWindowPrint);
+  if (window.print) {
+    const originalWindowPrint = window.print;
+    window.print = enhancePrintFunction(originalWindowPrint);
+  }
 
-  // Listen for afterprint event (when user cancels or completes print)
-  window.addEventListener('afterprint', restoreInputFunctionality);
+  // Listen for print-related events
+  window.addEventListener('beforeprint', function() {
+    storeInputReferences();
+  });
   
-  // Listen for beforeprint event to prepare
-  window.addEventListener('beforeprint', storeInputReferences);
+  window.addEventListener('afterprint', function() {
+    setTimeout(() => {
+      restoreInputFunctionality();
+    }, 200);
+  });
 
-  // For cases where print is called programmatically (like in QR code forms)
+  // Enhanced window.open override for print windows
   const originalOpenWindow = window.open;
   window.open = function(url, target, features) {
+    // Store state before opening any new window
+    storeInputReferences();
+    
     const newWindow = originalOpenWindow.call(this, url, target, features);
     
     if (newWindow && target === '_blank') {
-      // If this is a print window (detected by common print patterns)
+      // Monitor the print window
       const originalWrite = newWindow.document.write;
       newWindow.document.write = function(content) {
         const result = originalWrite.apply(this, arguments);
         
-        // If content includes print() call, prepare for restoration
-        if (content.includes('window.print()') || content.includes('window.onload')) {
-          // Schedule restoration for after the print window closes
-          setTimeout(restoreInputFunctionality, 500);
+        // If content includes print functionality
+        if (content.includes('window.print()') || content.includes('window.onload') || content.includes('print')) {
+          // Set up multiple restoration triggers
+          const restoreDelays = [300, 600, 1000, 1500, 2000];
+          restoreDelays.forEach(delay => {
+            setTimeout(() => {
+              if (newWindow.closed) {
+                restoreInputFunctionality();
+              }
+            }, delay);
+          });
+          
+          // Monitor window close
+          const checkClosed = setInterval(() => {
+            if (newWindow.closed) {
+              clearInterval(checkClosed);
+              restoreInputFunctionality();
+            }
+          }, 100);
+          
+          // Clean up after 10 seconds
+          setTimeout(() => {
+            clearInterval(checkClosed);
+          }, 10000);
         }
         
         return result;
       };
+      
+      // Monitor for window close via unload event
+      try {
+        newWindow.addEventListener('beforeunload', () => {
+          setTimeout(() => {
+            restoreInputFunctionality();
+          }, 200);
+        });
+        
+        newWindow.addEventListener('unload', () => {
+          setTimeout(() => {
+            restoreInputFunctionality();
+          }, 300);
+        });
+      } catch (e) {
+        // Cross-origin restrictions may prevent this
+      }
     }
     
     return newWindow;
   };
 
+  // Initialize focus management
+  handleTabFocus();
+
   // Initialize on page load
-  document.addEventListener('DOMContentLoaded', storeInputReferences);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', storeInputReferences);
+  } else {
+    storeInputReferences();
+  }
   
   // Re-initialize when DOM changes (for dynamic content)
   if (window.MutationObserver) {
@@ -113,7 +267,7 @@
           mutation.addedNodes.forEach(function(node) {
             if (node.nodeType === 1) { // Element node
               if (node.tagName === 'INPUT' || node.tagName === 'TEXTAREA' || 
-                  node.querySelector && (node.querySelector('input') || node.querySelector('textarea'))) {
+                  (node.querySelector && (node.querySelector('input') || node.querySelector('textarea')))) {
                 shouldUpdate = true;
               }
             }
@@ -131,5 +285,34 @@
       subtree: true
     });
   }
+
+  // Periodic maintenance (as a last resort)
+  setInterval(() => {
+    const inputs = document.querySelectorAll('input, textarea');
+    let hasUnresponsive = false;
+    
+    inputs.forEach(input => {
+      try {
+        if (input.offsetParent !== null) {
+          const canFocus = input.tabIndex !== -1 && !input.disabled && !input.readonly;
+          if (canFocus) {
+            // Quick responsiveness test
+            const originalValue = input.value;
+            input.focus();
+            if (document.activeElement !== input) {
+              hasUnresponsive = true;
+            }
+            input.blur();
+          }
+        }
+      } catch (e) {
+        hasUnresponsive = true;
+      }
+    });
+    
+    if (hasUnresponsive) {
+      restoreInputFunctionality();
+    }
+  }, 5000); // Check every 5 seconds
 
 })();

@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Print Fix Test</title>
+    <title>Enhanced Print Fix Test</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto;
             padding: 20px;
             background: #0e1117;
@@ -19,176 +19,564 @@
             padding: 20px;
             background: #1f2937;
             border-radius: 8px;
+            border-left: 4px solid #3b82f6;
         }
         
         input, textarea {
             width: 100%;
-            padding: 10px;
-            margin: 10px 0;
+            padding: 12px;
+            margin: 8px 0;
             background: #0b1220;
             color: #e6e6e6;
-            border: 1px solid #374151;
+            border: 2px solid #374151;
             border-radius: 8px;
+            transition: border-color 0.3s ease;
+        }
+        
+        input:focus, textarea:focus {
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
         
         button {
-            padding: 10px 16px;
+            padding: 12px 20px;
             margin: 5px;
             background: #3b82f6;
             color: white;
             border: none;
             border-radius: 8px;
             cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s ease;
         }
         
         button:hover {
             background: #2563eb;
         }
         
+        button.secondary {
+            background: #6b7280;
+        }
+        
+        button.secondary:hover {
+            background: #4b5563;
+        }
+        
         .test-result {
-            margin: 10px 0;
-            padding: 10px;
+            margin: 15px 0;
+            padding: 15px;
             background: #0f172a;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            border: 1px solid #374151;
+        }
+        
+        .success {
+            border-left: 4px solid #10b981;
+            background: #0f2f23;
+        }
+        
+        .error {
+            border-left: 4px solid #ef4444;
+            background: #2f0f0f;
+        }
+        
+        .info {
+            background: #1e293b;
+            padding: 10px;
             border-radius: 4px;
-            font-family: monospace;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 15px 0;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-responsive {
+            background-color: #10b981;
+        }
+        
+        .status-unresponsive {
+            background-color: #ef4444;
+        }
+        
+        #real-time-test {
+            min-height: 60px;
+            resize: vertical;
+        }
+        
+        .browser-test {
+            background: #2d1b69;
+            border-color: #7c3aed;
         }
     </style>
 </head>
 <body>
-    <h1>Print Functionality Fix Test</h1>
+    <h1>🖨️ Enhanced Print Fix Test Suite</h1>
     
-    <div class="test-section">
-        <h2>Test 1: Basic Input Fields</h2>
-        <input type="text" id="test1-input1" placeholder="Type something here..." value="">
-        <input type="text" id="test1-input2" placeholder="Another input field..." value="">
-        <textarea id="test1-textarea" rows="3" placeholder="Textarea for testing..."></textarea>
-        <button onclick="testPrint('Test 1')">Test Print</button>
-        <div class="test-result" id="test1-result">Test results will appear here...</div>
+    <div class="info">
+        <strong>Instructions:</strong> This test suite validates the print preview fix across different scenarios. 
+        After clicking "Test Print", a popup window will open and close automatically. 
+        Check if input fields remain responsive and editable without manual refresh.
     </div>
 
     <div class="test-section">
-        <h2>Test 2: Dynamic Input Creation</h2>
+        <h2>🔤 Test 1: Basic Input Field Responsiveness</h2>
+        <input type="text" id="test1-input1" placeholder="Type something here to test responsiveness..." value="">
+        <input type="email" id="test1-input2" placeholder="Email input field..." value="">
+        <input type="number" id="test1-input3" placeholder="Number input..." value="">
+        <textarea id="test1-textarea" rows="3" placeholder="Textarea for multi-line testing..."></textarea>
+        
+        <div class="controls">
+            <button onclick="testPrint('Test 1')">🖨️ Test Print</button>
+            <button class="secondary" onclick="testInputResponsiveness('test1')">🔍 Check Responsiveness</button>
+        </div>
+        <div class="test-result" id="test1-result">Ready to test basic input responsiveness...</div>
+    </div>
+
+    <div class="test-section">
+        <h2>⚡ Test 2: Dynamic Input Creation</h2>
         <div id="dynamic-inputs"></div>
-        <button onclick="addDynamicInput()">Add Input</button>
-        <button onclick="testPrint('Test 2')">Test Print</button>
-        <div class="test-result" id="test2-result">Test results will appear here...</div>
+        <div class="controls">
+            <button class="secondary" onclick="addDynamicInput()">➕ Add Input</button>
+            <button onclick="testPrint('Test 2')">🖨️ Test Print</button>
+            <button class="secondary" onclick="testInputResponsiveness('test2')">🔍 Check All Inputs</button>
+        </div>
+        <div class="test-result" id="test2-result">Add some dynamic inputs and test print functionality...</div>
     </div>
 
     <div class="test-section">
-        <h2>Test 3: Event Listeners Test</h2>
-        <input type="text" id="test3-input" placeholder="Type to trigger events...">
-        <div class="test-result" id="test3-result">Type in the input above to see event activity...</div>
+        <h2>🎯 Test 3: Focus State Preservation</h2>
+        <input type="text" id="focus-test-input" placeholder="Click here, then test print to check focus preservation...">
+        <textarea id="focus-test-textarea" rows="2" placeholder="Test selection and cursor position preservation..."></textarea>
+        
+        <div class="controls">
+            <button onclick="testPrintWithFocus()">🖨️ Test Print (Focus)</button>
+            <button class="secondary" onclick="testSelectionPreservation()">🎯 Test Selection</button>
+        </div>
+        <div class="test-result" id="test3-result">Click in an input field, then test print to verify focus preservation...</div>
     </div>
 
-    <script src="static/print-fix.js"></script>
+    <div class="test-section">
+        <h2>⚡ Test 4: Real-Time Event Monitoring</h2>
+        <input type="text" id="realtime-input" placeholder="Type here and watch event monitoring...">
+        <textarea id="real-time-test" placeholder="Multi-line event testing area..."></textarea>
+        
+        <div class="controls">
+            <button onclick="testPrint('Test 4')">🖨️ Test Print</button>
+            <button class="secondary" onclick="clearEventLog()">🗑️ Clear Log</button>
+        </div>
+        <div class="test-result" id="test4-result">Event monitoring will appear here as you type...</div>
+    </div>
+
+    <div class="test-section browser-test">
+        <h2>🌐 Test 5: Cross-Browser Compatibility</h2>
+        <p>Test different browser scenarios:</p>
+        <input type="text" id="browser-test1" placeholder="Chrome/Edge compatibility test..." value="">
+        <input type="text" id="browser-test2" placeholder="Firefox compatibility test..." value="">
+        <textarea id="browser-textarea" rows="3" placeholder="Safari/WebKit compatibility test..."></textarea>
+        
+        <div class="controls">
+            <button onclick="testMultiplePrintWindows()">🖨️ Multiple Print Test</button>
+            <button onclick="testPrintSequence()">🔄 Sequential Print Test</button>
+            <button class="secondary" onclick="testBrowserCompatibility()">🌐 Browser Check</button>
+        </div>
+        <div class="test-result" id="test5-result">Cross-browser compatibility test results will appear here...</div>
+    </div>
+
+    <script src="app/static/print-fix.js"></script>
     <script>
         let dynamicInputCount = 0;
+        let eventLog = [];
+        let printTestCount = 0;
         
         function addDynamicInput() {
             dynamicInputCount++;
             const container = document.getElementById('dynamic-inputs');
+            const inputDiv = document.createElement('div');
+            inputDiv.style.margin = '5px 0';
+            
             const input = document.createElement('input');
             input.type = 'text';
-            input.placeholder = `Dynamic input ${dynamicInputCount}`;
+            input.placeholder = `Dynamic input ${dynamicInputCount} - test responsiveness`;
             input.id = `dynamic-input-${dynamicInputCount}`;
-            container.appendChild(input);
+            
+            const removeBtn = document.createElement('button');
+            removeBtn.textContent = '❌';
+            removeBtn.className = 'secondary';
+            removeBtn.style.marginLeft = '10px';
+            removeBtn.onclick = () => inputDiv.remove();
+            
+            inputDiv.appendChild(input);
+            inputDiv.appendChild(removeBtn);
+            container.appendChild(inputDiv);
+            
+            // Add event listeners to new input
+            addEventListeners(input);
         }
         
         function testPrint(testName) {
+            printTestCount++;
+            
             // Store input states before print
             const inputs = document.querySelectorAll('input, textarea');
-            const valuesBefore = Array.from(inputs).map(input => ({
-                id: input.id,
+            const statesBefore = Array.from(inputs).map(input => ({
+                id: input.id || `unnamed-${Array.from(inputs).indexOf(input)}`,
                 value: input.value,
-                focused: input === document.activeElement
+                focused: input === document.activeElement,
+                selectionStart: input.selectionStart,
+                selectionEnd: input.selectionEnd,
+                disabled: input.disabled,
+                readonly: input.readonly
             }));
             
-            // Simulate print by opening a popup window
-            const w = window.open('', '_blank');
+            updateTestResult(testName, `🖨️ Opening print preview window ${printTestCount}...`, 'info');
+            
+            // Simulate realistic print workflow
+            const w = window.open('', '_blank', 'width=800,height=600');
+            if (!w) {
+                updateTestResult(testName, '❌ Failed to open print window (popup blocked?)', 'error');
+                return;
+            }
+            
             w.document.write(`
                 <html>
-                <head><title>Test Print</title></head>
+                <head>
+                    <title>Print Preview - ${testName}</title>
+                    <style>
+                        body { 
+                            font-family: Arial, sans-serif; 
+                            padding: 40px; 
+                            text-align: center;
+                            background: #f5f5f5;
+                        }
+                        .print-content {
+                            background: white;
+                            padding: 60px;
+                            border-radius: 8px;
+                            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                            max-width: 600px;
+                            margin: 0 auto;
+                        }
+                        .countdown {
+                            font-size: 18px;
+                            color: #666;
+                            margin-top: 20px;
+                        }
+                    </style>
+                </head>
                 <body>
-                    <h1>${testName} - Print Preview</h1>
-                    <p>This simulates the print functionality.</p>
+                    <div class="print-content">
+                        <h1>🖨️ ${testName} - Print Preview</h1>
+                        <p>This simulates a realistic print preview window.</p>
+                        <p>Print dialog will appear automatically...</p>
+                        <div class="countdown" id="countdown">Closing in 3...</div>
+                    </div>
                     <script>
-                        window.onload = () => {
-                            // Simulate print dialog
-                            setTimeout(() => {
-                                alert('Print dialog would appear here');
-                                window.close();
-                            }, 500);
-                        };
+                        let count = 3;
+                        const countdown = document.getElementById('countdown');
+                        const timer = setInterval(() => {
+                            count--;
+                            if (count > 0) {
+                                countdown.textContent = 'Closing in ' + count + '...';
+                            } else {
+                                countdown.textContent = 'Closing now...';
+                                clearInterval(timer);
+                                
+                                // Simulate print dialog
+                                setTimeout(() => {
+                                    if (window.print) window.print();
+                                    setTimeout(() => window.close(), 500);
+                                }, 200);
+                            }
+                        }, 800);
                     </script>
                 </body>
                 </html>
             `);
             w.document.close();
             
-            // Test input responsiveness after print
+            // Monitor and test after window closes
+            const checkClosed = setInterval(() => {
+                if (w.closed) {
+                    clearInterval(checkClosed);
+                    setTimeout(() => {
+                        testInputsAfterPrint(testName, statesBefore);
+                    }, 500);
+                }
+            }, 100);
+            
+            // Fallback timeout
             setTimeout(() => {
-                const valuesAfter = Array.from(inputs).map(input => ({
-                    id: input.id,
-                    value: input.value,
-                    responsive: canTypeInInput(input)
-                }));
-                
-                displayTestResults(testName, valuesBefore, valuesAfter);
-            }, 1000);
+                clearInterval(checkClosed);
+                if (!w.closed) {
+                    try { w.close(); } catch(e) {}
+                }
+                setTimeout(() => {
+                    testInputsAfterPrint(testName, statesBefore);
+                }, 300);
+            }, 8000);
         }
         
-        function canTypeInInput(input) {
-            // Test if input is responsive by checking if it can receive focus
+        function testInputsAfterPrint(testName, statesBefore) {
+            const inputs = document.querySelectorAll('input, textarea');
+            const results = [];
+            let allResponsive = true;
+            
+            inputs.forEach((input, index) => {
+                const stateBefore = statesBefore[index];
+                if (!stateBefore) return;
+                
+                const isResponsive = testInputResponsiveness(input);
+                const focusWorks = testInputFocus(input);
+                const eventsWork = testInputEvents(input);
+                
+                const status = isResponsive && focusWorks && eventsWork ? 'RESPONSIVE' : 'UNRESPONSIVE';
+                const statusIcon = status === 'RESPONSIVE' ? '✅' : '❌';
+                
+                if (status === 'UNRESPONSIVE') allResponsive = false;
+                
+                results.push(`${statusIcon} ${stateBefore.id}: ${status}`);
+                
+                // Additional detailed checks
+                if (!isResponsive) results.push(`   🔍 Focus test failed`);
+                if (!focusWorks) results.push(`   🔍 Focus change failed`);
+                if (!eventsWork) results.push(`   🔍 Event handling failed`);
+            });
+            
+            const finalStatus = allResponsive ? 'success' : 'error';
+            const summary = allResponsive 
+                ? `✅ All ${inputs.length} inputs are fully responsive after print!` 
+                : `❌ Some inputs lost responsiveness after print`;
+            
+            updateTestResult(testName, [summary, '', ...results].join('<br>'), finalStatus);
+        }
+        
+        function testInputResponsiveness(input) {
             try {
+                if (!input || !input.offsetParent) return false;
+                
                 const originalValue = input.value;
-                input.focus();
-                const hasFocus = document.activeElement === input;
-                input.blur();
-                return hasFocus;
+                const testValue = originalValue + '_test';
+                
+                // Test if we can change value
+                input.value = testValue;
+                const valueChanged = input.value === testValue;
+                input.value = originalValue;
+                
+                return valueChanged;
             } catch (e) {
                 return false;
             }
         }
         
-        function displayTestResults(testName, before, after) {
-            const resultDiv = document.getElementById(testName.toLowerCase().replace(' ', '') + '-result');
-            let results = [`${testName} Results:`];
-            
-            after.forEach((inputAfter, index) => {
-                const inputBefore = before[index];
-                const status = inputAfter.responsive ? 'RESPONSIVE ✓' : 'UNRESPONSIVE ✗';
-                results.push(`${inputAfter.id || 'unnamed'}: ${status}`);
-            });
-            
-            resultDiv.innerHTML = results.join('<br>');
-            resultDiv.style.color = after.every(input => input.responsive) ? '#10b981' : '#ef4444';
+        function testInputFocus(input) {
+            try {
+                if (!input || !input.offsetParent) return false;
+                
+                input.focus();
+                const canFocus = document.activeElement === input;
+                input.blur();
+                
+                return canFocus;
+            } catch (e) {
+                return false;
+            }
         }
         
-        // Test event listeners
-        document.getElementById('test3-input').addEventListener('input', function(e) {
-            document.getElementById('test3-result').innerHTML = 
-                `Input event fired! Value: "${e.target.value}" | Time: ${new Date().toLocaleTimeString()}`;
-        });
+        function testInputEvents(input) {
+            try {
+                if (!input || !input.offsetParent) return false;
+                
+                let eventFired = false;
+                const testHandler = () => { eventFired = true; };
+                
+                input.addEventListener('focus', testHandler);
+                input.focus();
+                input.blur();
+                input.removeEventListener('focus', testHandler);
+                
+                return eventFired;
+            } catch (e) {
+                return false;
+            }
+        }
         
-        // Add some initial dynamic inputs
-        addDynamicInput();
-        addDynamicInput();
+        function testPrintWithFocus() {
+            const focusInput = document.getElementById('focus-test-input');
+            const focusTextarea = document.getElementById('focus-test-textarea');
+            
+            // Set focus and selection
+            focusInput.focus();
+            focusInput.value = 'Test focus preservation';
+            focusInput.setSelectionRange(5, 10);
+            
+            setTimeout(() => {
+                testPrint('Test 3 (Focus)');
+            }, 100);
+        }
         
-        // Test focus/blur functionality
-        function testFocusBlur() {
-            const inputs = document.querySelectorAll('input, textarea');
+        function testSelectionPreservation() {
+            const textarea = document.getElementById('focus-test-textarea');
+            textarea.value = 'Test selection preservation in this textarea';
+            textarea.focus();
+            textarea.setSelectionRange(5, 14);
+            
+            updateTestResult('Test 3', `🎯 Selection set from position 5-14. Text: "${textarea.value.substring(5, 14)}"`, 'info');
+        }
+        
+        function testMultiplePrintWindows() {
+            updateTestResult('Test 5', '🖨️ Testing multiple print windows...', 'info');
+            
+            // Open multiple print windows in sequence
+            setTimeout(() => testPrint('Test 5-A'), 100);
+            setTimeout(() => testPrint('Test 5-B'), 1500);
+            setTimeout(() => testPrint('Test 5-C'), 3000);
+        }
+        
+        function testPrintSequence() {
+            updateTestResult('Test 5', '🔄 Testing sequential print operations...', 'info');
+            
+            const sequence = ['Sequential-1', 'Sequential-2', 'Sequential-3'];
+            let index = 0;
+            
+            function runNext() {
+                if (index < sequence.length) {
+                    testPrint(sequence[index]);
+                    index++;
+                    setTimeout(runNext, 4000);
+                }
+            }
+            
+            runNext();
+        }
+        
+        function testBrowserCompatibility() {
+            const browser = detectBrowser();
+            const results = [`🌐 Browser detected: ${browser}`, ''];
+            
+            // Test browser-specific features
+            const features = {
+                'Print API': !!window.print,
+                'Popup Windows': !!window.open,
+                'Visibility API': !!document.visibilityState,
+                'Focus Events': !!window.onfocus,
+                'Selection API': !!document.getSelection,
+                'MutationObserver': !!window.MutationObserver
+            };
+            
+            Object.entries(features).forEach(([feature, supported]) => {
+                const status = supported ? '✅' : '❌';
+                results.push(`${status} ${feature}: ${supported ? 'Supported' : 'Not supported'}`);
+            });
+            
+            updateTestResult('Test 5', results.join('<br>'), 'info');
+        }
+        
+        function detectBrowser() {
+            const ua = navigator.userAgent;
+            if (ua.includes('Chrome')) return 'Chrome';
+            if (ua.includes('Firefox')) return 'Firefox';
+            if (ua.includes('Safari') && !ua.includes('Chrome')) return 'Safari';
+            if (ua.includes('Edge')) return 'Edge';
+            return 'Unknown';
+        }
+        
+        function updateTestResult(testName, message, type = 'info') {
+            const testId = testName.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 5);
+            const resultDiv = document.getElementById(`${testId}-result`) || 
+                             document.getElementById('test1-result'); // fallback
+            
+            if (resultDiv) {
+                resultDiv.innerHTML = message;
+                resultDiv.className = `test-result ${type}`;
+            }
+        }
+        
+        function addEventListeners(element) {
+            element.addEventListener('input', function(e) {
+                logEvent('input', e.target.id, e.target.value);
+            });
+            
+            element.addEventListener('focus', function(e) {
+                logEvent('focus', e.target.id, 'gained focus');
+                e.target.style.borderColor = '#3b82f6';
+            });
+            
+            element.addEventListener('blur', function(e) {
+                logEvent('blur', e.target.id, 'lost focus');
+                e.target.style.borderColor = '#374151';
+            });
+        }
+        
+        function logEvent(type, elementId, detail) {
+            const timestamp = new Date().toLocaleTimeString();
+            eventLog.push(`[${timestamp}] ${type.toUpperCase()} on ${elementId}: ${detail}`);
+            
+            if (eventLog.length > 10) {
+                eventLog = eventLog.slice(-10); // Keep last 10 events
+            }
+            
+            updateTestResult('Test 4', eventLog.join('<br>'), 'info');
+        }
+        
+        function clearEventLog() {
+            eventLog = [];
+            updateTestResult('Test 4', 'Event log cleared. Start typing to see events...', 'info');
+        }
+        
+        function testInputResponsiveness(testPrefix) {
+            const inputs = document.querySelectorAll(`input[id*="${testPrefix}"], textarea[id*="${testPrefix}"]`);
+            const results = [];
+            
             inputs.forEach(input => {
-                input.addEventListener('focus', () => {
-                    input.style.borderColor = '#3b82f6';
-                });
-                input.addEventListener('blur', () => {
-                    input.style.borderColor = '#374151';
-                });
+                const isResponsive = testInputResponsiveness(input) && 
+                                   testInputFocus(input) && 
+                                   testInputEvents(input);
+                
+                const statusIcon = isResponsive ? '✅' : '❌';
+                const status = isResponsive ? 'RESPONSIVE' : 'UNRESPONSIVE';
+                results.push(`${statusIcon} ${input.id || 'unnamed'}: ${status}`);
             });
+            
+            const allResponsive = !results.some(r => r.includes('❌'));
+            const resultType = allResponsive ? 'success' : 'error';
+            
+            updateTestResult(testPrefix === 'test1' ? 'Test 1' : 'Test 2', results.join('<br>'), resultType);
         }
         
-        // Initialize focus/blur test
-        testFocusBlur();
+        // Initialize the test suite
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add initial dynamic inputs
+            addDynamicInput();
+            addDynamicInput();
+            
+            // Add event listeners to all existing inputs
+            document.querySelectorAll('input, textarea').forEach(addEventListeners);
+            
+            // Initialize real-time event monitoring
+            const realtimeInput = document.getElementById('realtime-input');
+            const realtimeTextarea = document.getElementById('real-time-test');
+            
+            if (realtimeInput) addEventListeners(realtimeInput);
+            if (realtimeTextarea) addEventListeners(realtimeTextarea);
+            
+            updateTestResult('Test 1', 'Test suite initialized. Ready to test print functionality!', 'info');
+        });
     </script>
 </body>
 </html>
