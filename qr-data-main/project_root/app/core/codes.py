@@ -83,16 +83,16 @@ def generate_qr(text: str, size: int = 300, preferred_ecc: str = "H") -> Image.I
     start = order.index(preferred_ecc) if preferred_ecc in order else 0
     try_levels = order[start:]
 
-    # High-DPI scaling factor for print-quality output
-    # Generate at 3x resolution internally for crisp 300 DPI equivalent
-    dpi_scale_factor = 3
-    internal_size = size * dpi_scale_factor
+    # Direct size calculation for exact print dimensions
+    # 300 DPI scaling: size corresponds to physical mm × 31.5 pixels/mm 
+    dpi_pixels_per_mm = 31.5
+    physical_mm = size / dpi_pixels_per_mm
     
-    # Ensure minimum high-quality internal size
-    min_internal_size = max(internal_size, 1800)  # Minimum 1800px internal for ultra-sharp output
+    # Generate at actual target size for print precision
+    print_size = size
     
-    # Calculate high DPI box size for crisp printing
-    base_box_size = max(12, min_internal_size // 37)  # Larger box size for high-DPI generation
+    # Calculate optimal box size based on target print dimensions
+    base_box_size = max(8, print_size // 37)  # Optimized for print clarity
     
     last_err: Optional[Exception] = None
     for lvl in try_levels:
@@ -101,7 +101,7 @@ def generate_qr(text: str, size: int = 300, preferred_ecc: str = "H") -> Image.I
                 version=None,
                 error_correction=ecc_map[lvl],
                 box_size=base_box_size,
-                border=12  # Increased border for better scanning at high resolution
+                border=4  # Standard border for consistent dimensions
             )
             qr.add_data(text)
             qr.make(fit=True)
@@ -112,36 +112,30 @@ def generate_qr(text: str, size: int = 300, preferred_ecc: str = "H") -> Image.I
             border = qr.border
             total_modules = n_modules + border * 2
             
-            # Calculate optimal box size for target internal resolution
-            box_size = max(base_box_size, min_internal_size // total_modules)
+            # Calculate exact box size for target print dimensions
+            box_size = max(base_box_size, print_size // total_modules)
             qr.box_size = box_size
             
-            # Generate high-resolution image internally
+            # Generate at exact print size
             img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
             
-            # Calculate actual output dimensions at high resolution
-            actual_internal_size = total_modules * box_size
+            # Scale to exact target size for print consistency
+            actual_size = total_modules * box_size
+            if actual_size != print_size:
+                img = _scale_nearest_exact(img, print_size)
             
-            # Scale to exact internal target size if needed using high-quality resampling
-            if actual_internal_size != internal_size:
-                if actual_internal_size > internal_size:
-                    img = img.resize((internal_size, internal_size), Image.LANCZOS)
-                else:
-                    # For upscaling, use nearest neighbor to maintain sharp edges
-                    img = _scale_nearest_exact(img, internal_size)
-            
-            # Finally scale down to display size using high-quality LANCZOS resampling
-            # This maintains crisp edges while reducing size for display
-            if internal_size != size:
-                img = img.resize((size, size), Image.LANCZOS)
+            # Final resize to ensure exact output dimensions
+            if img.size != (size, size):
+                img = img.resize((size, size), Image.NEAREST)
 
-            # ---- вставляем логотип ----
+            # Add logo at consistent size relative to print dimensions
             logo_path = os.path.join(os.path.dirname(__file__), "..", "static", "star.png")
             logo_path = os.path.abspath(logo_path)
             if os.path.exists(logo_path):
                 logo = Image.open(logo_path).convert("RGBA")
-                # Logo size based on final display size, not internal resolution
-                logo_size = size // 8 if lvl == "H" else size // 6
+                # Logo size based on physical dimensions (consistent across all sizes)
+                logo_size_mm = physical_mm / 8 if lvl == "H" else physical_mm / 6
+                logo_size = max(16, int(logo_size_mm * dpi_pixels_per_mm))
                 logo = logo.resize((logo_size, logo_size), Image.LANCZOS)
                 pos = ((img.size[0] - logo.size[0]) // 2, (img.size[1] - logo.size[1]) // 2)
                 img.paste(logo, pos, mask=logo)
@@ -154,123 +148,116 @@ def generate_qr(text: str, size: int = 300, preferred_ecc: str = "H") -> Image.I
 def generate_dm(text: str, size: int = 300) -> Image.Image:
     from pylibdmtx.pylibdmtx import encode as dm_encode
     
-    # High-DPI scaling for print-quality DataMatrix
-    dpi_scale_factor = 4  # Even higher for DataMatrix due to dense matrix
-    internal_size = size * dpi_scale_factor
-    min_internal_size = max(internal_size, 2000)  # Higher minimum for DataMatrix precision
+    # Direct generation for print precision
+    dpi_pixels_per_mm = 31.5
+    physical_mm = size / dpi_pixels_per_mm
     
     en = dm_encode(text.encode("utf-8"))
     base = Image.frombytes('RGB', (en.width, en.height), en.pixels)
     
-    # Scale using nearest neighbor to maintain sharp edges for matrix codes
-    if base.size[0] < min_internal_size:
-        # Calculate scaling factor for ultra-high-quality output
-        scale_factor = min_internal_size // max(base.size)
-        scale_factor = max(scale_factor, 16)  # Higher minimum scaling for DataMatrix
+    # Calculate optimal scaling for exact print dimensions
+    min_scale = max(16, size // max(base.size))  # Ensure minimum quality
+    
+    # Scale to achieve target print size
+    scaled_size = base.size[0] * min_scale
+    if scaled_size < size:
+        # Scale up to target size
+        scale_factor = size // base.size[0]
         high_res = base.resize(
             (base.size[0] * scale_factor, base.size[1] * scale_factor), 
             Image.NEAREST
         )
-        # Scale to exact internal size maintaining aspect ratio
-        if high_res.size[0] != internal_size:
-            high_res = _scale_nearest_exact(high_res, internal_size)
-        
-        # Finally scale down to display size using LANCZOS for smooth result
-        if internal_size != size:
-            return high_res.resize((size, size), Image.LANCZOS)
-        return high_res
-    
-    # Direct scaling if already large enough
-    scaled = _scale_nearest_exact(base, internal_size)
-    if internal_size != size:
-        return scaled.resize((size, size), Image.LANCZOS)
-    return scaled
+        # Ensure exact target dimensions
+        return _scale_nearest_exact(high_res, size)
+    else:
+        # Direct scaling to target size
+        return _scale_nearest_exact(base, size)
 
 def generate_code128(text: str, size: int = 300, human_text: str = "") -> Image.Image:
-    """Generate Code 128 barcode using python-barcode.
-    Returns image scaled by height to target size, preserving aspect ratio.
+    """Generate Code 128 barcode with exact height for print dimensions.
+    Size parameter represents height in pixels for print consistency.
     """
     try:
         import barcode  # type: ignore
         from barcode.writer import ImageWriter  # type: ignore
         Code128 = barcode.get_barcode_class('code128')
         
-        # High-DPI scaling for barcode generation
-        dpi_scale_factor = 3
-        internal_size = size * dpi_scale_factor
+        # Direct calculation for print-accurate dimensions
+        dpi_pixels_per_mm = 31.5
+        target_height_mm = size / dpi_pixels_per_mm
         
         code = Code128(text, writer=ImageWriter())
         bio = io.BytesIO()
         
-        # High-resolution options for crisp barcode output
+        # Options for exact print dimensions
         options = {
-            "module_height": 45.0,  # 3x higher for internal resolution
-            "module_width": 0.8,    # Thicker bars for better print quality
-            "quiet_zone": 6.0,      # Larger quiet zone
-            "font_size": 0,         # Disable built-in text
-            "text_distance": 15.0,
+            "module_height": target_height_mm * 2.5,  # Convert to mm for barcode library
+            "module_width": 0.33,                     # Standard bar width in mm
+            "quiet_zone": 3.0,                       # Standard quiet zone
+            "font_size": 0,                          # Disable built-in text
+            "text_distance": 5.0,
             "write_text": False,
-            "dpi": 300              # Set DPI for high quality
+            "dpi": 300                               # Standard print DPI
         }
         
         code.write(bio, options=options)
         bio.seek(0)
         img = Image.open(bio).convert("RGB")
         
-        # Scale to internal resolution maintaining aspect ratio
-        high_res = _scale_preserve_aspect_height(img, internal_size)
+        # Scale to exact target height
+        result = _scale_preserve_aspect_height(img, size)
         
-        # Add human text at high resolution if specified
+        # Add human text if specified
         if human_text:
-            high_res = _add_text_below_barcode(high_res, human_text)
+            result = _add_text_below_barcode(result, human_text)
         
-        # Scale down to display size using high-quality resampling
-        if internal_size != size:
-            return _scale_preserve_aspect_height(high_res, size)
-        return high_res
+        return result
     except Exception as e:
         raise RuntimeError("Не удалось сгенерировать Code128. Установите 'python-barcode'.") from e
 
 def generate_pdf417(text: str, size: int = 300, human_text: str = "") -> Image.Image:
-    """Generate PDF417 barcode using pdf417gen."""
+    """Generate PDF417 barcode with exact height for print dimensions.
+    Size parameter represents height in pixels for print consistency.
+    """
     try:
         import pdf417gen  # type: ignore
         
-        # High-DPI scaling for PDF417
-        dpi_scale_factor = 3
-        internal_size = size * dpi_scale_factor
+        # Calculate dimensions for exact print output
+        dpi_pixels_per_mm = 31.5
+        target_height_mm = size / dpi_pixels_per_mm
         
-        # Generate at higher scale and ratio for print quality
+        # Generate with optimal parameters for print quality
         codes = pdf417gen.encode(text, columns=6, security_level=2)
-        img = pdf417gen.render_image(codes, scale=9, ratio=9)  # 3x higher scale
+        # Scale based on target print height
+        scale = max(3, int(target_height_mm * 0.5))  # Adaptive scaling
+        img = pdf417gen.render_image(codes, scale=scale, ratio=3)
         img = img.convert("RGB")
         
-        # Scale to internal resolution maintaining aspect ratio
-        high_res = _scale_preserve_aspect_height(img, internal_size)
+        # Scale to exact target height
+        result = _scale_preserve_aspect_height(img, size)
         
-        # Add human text at high resolution if specified
+        # Add human text if specified
         if human_text:
-            high_res = _add_text_below_barcode(high_res, human_text)
+            result = _add_text_below_barcode(result, human_text)
         
-        # Scale down to display size using high-quality resampling
-        if internal_size != size:
-            return _scale_preserve_aspect_height(high_res, size)
-        return high_res
+        return result
     except Exception as e:
         raise RuntimeError("Не удалось сгенерировать PDF417. Установите 'pdf417gen'.") from e
 
 def generate_aztec(text: str, size: int = 300) -> Image.Image:
-    """Generate Aztec code with custom implementation to create proper Aztec matrix patterns."""
+    """Generate Aztec code with exact dimensions for print consistency."""
     try:
         import numpy as np
         
-        # Create a simple Aztec-like pattern manually
-        # This is a simplified implementation for demonstration
+        # Calculate physical dimensions for consistent print output
+        dpi_pixels_per_mm = 31.5
+        physical_mm = size / dpi_pixels_per_mm
+        
+        # Create simplified Aztec-like pattern
         text_bytes = text.encode('utf-8')
         data_len = len(text_bytes)
         
         # Calculate matrix size based on data length
-        # Aztec codes can be 15x15 to 151x151 (compact) or larger
         if data_len <= 10:
             matrix_size = 15
         elif data_len <= 25:
@@ -307,12 +294,11 @@ def generate_aztec(text: str, size: int = 300) -> Image.Image:
                     matrix[i, j] = 0  # Black
         
         # Add orientation markers (corner squares)
-        # Top-left corner
         matrix[0:3, 0:3] = 0
         matrix[1, 1] = 255
         
-        # Add data pattern (simple encoding simulation)
-        hash_val = hash(text) % (2**16)  # Simple hash for pattern
+        # Add data pattern based on text hash
+        hash_val = hash(text) % (2**16)
         for i in range(matrix_size):
             for j in range(matrix_size):
                 # Skip finder pattern area
@@ -329,50 +315,20 @@ def generate_aztec(text: str, size: int = 300) -> Image.Image:
         # Create PIL image
         img = Image.fromarray(matrix, mode='L').convert('RGB')
         
-        # Add border (quiet zone)
-        border = max(4, matrix_size // 10)
-        new_width = img.width + 2 * border
-        new_height = img.height + 2 * border
+        # Add border proportional to physical size
+        border_mm = max(1, physical_mm * 0.1)  # 10% border
+        border_px = int(border_mm * dpi_pixels_per_mm)
+        new_width = img.width + 2 * border_px
+        new_height = img.height + 2 * border_px
         bordered_img = Image.new('RGB', (new_width, new_height), 'white')
-        bordered_img.paste(img, (border, border))
+        bordered_img.paste(img, (border_px, border_px))
         
-        # Scale to final size
+        # Scale to exact target size
         return bordered_img.resize((size, size), Image.NEAREST)
         
     except ImportError:
-        # Fallback to QR code if numpy is not available
-        import qrcode
-        
-        min_size = max(size, 600)
-        base_box_size = max(8, min_size // 37)
-        
-        qr = qrcode.QRCode(
-            version=None,
-            error_correction=qrcode.constants.ERROR_CORRECT_H,
-            box_size=base_box_size,
-            border=8
-        )
-        qr.add_data(text)
-        qr.make(fit=True)
-        
-        matrix = qr.get_matrix()
-        n_modules = len(matrix)
-        border = qr.border
-        total_modules = n_modules + border * 2
-        
-        box_size = max(base_box_size, min_size // total_modules)
-        qr.box_size = box_size
-        
-        img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
-        actual_size = total_modules * box_size
-        
-        if actual_size != size:
-            if actual_size > size:
-                img = img.resize((size, size), Image.LANCZOS)
-            else:
-                img = _scale_nearest_exact(img, size)
-        
-        return img
+        # Fallback to QR code with exact dimensions
+        return generate_qr(text, size, "H")
     except Exception as e:
         raise RuntimeError("Не удалось сгенерировать Aztec-код.") from e
 
@@ -398,8 +354,8 @@ def generate_by_type(code_type: str, text: str, size: int = 300, human_text: str
 
 def save_image(img: Image.Image, full_path: str) -> None:
     os.makedirs(os.path.dirname(full_path), exist_ok=True)
-    # Save with high quality settings for better print results
-    # Set DPI metadata to 300 for print quality indication
+    # Save with exact DPI metadata for GOST-compliant print output
+    # 300 DPI ensures consistent physical dimensions across different printers
     img.save(full_path, "PNG", optimize=False, compress_level=1, dpi=(300, 300))
 
 def decode_qr(pil_img: Image.Image) -> Optional[str]:

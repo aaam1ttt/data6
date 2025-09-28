@@ -219,11 +219,11 @@
   let queue = [];
 
   const PRESETS = {
-    QR:     [{px:600,label:'600 px (high-res)', mm:20},{px:840,label:'840 px (print)', mm:28},{px:1200,label:'1200 px (ultra)', mm:40}],
-    DM:     [{px:560,label:'560 px (high-res)', mm:16},{px:720,label:'720 px (print)', mm:22},{px:1040,label:'1040 px (ultra)', mm:32}],
-    C128:   [{px:400,label:'400 px (высота, high-res)', mm:15},{px:560,label:'560 px (print)', mm:20},{px:720,label:'720 px (ultra)', mm:26}],
-    PDF417: [{px:400,label:'400 px (высота, high-res)', mm:15},{px:560,label:'560 px (print)', mm:20},{px:720,label:'720 px (ultra)', mm:26}],
-    AZTEC:  [{px:600,label:'600 px (high-res)', mm:20},{px:840,label:'840 px (print)', mm:28},{px:1200,label:'1200 px (ultra)', mm:40}]
+    QR:     [{px:472,label:'15×15 мм', mm:15},{px:630,label:'20×20 мм', mm:20},{px:787,label:'25×25 мм', mm:25},{px:945,label:'30×30 мм', mm:30}],
+    DM:     [{px:378,label:'12×12 мм', mm:12},{px:472,label:'15×15 мм', mm:15},{px:630,label:'20×20 мм', mm:20},{px:787,label:'25×25 мм', mm:25}],
+    C128:   [{px:378,label:'12 мм высота', mm:12},{px:472,label:'15 мм высота', mm:15},{px:630,label:'20 мм высота', mm:20}],
+    PDF417: [{px:378,label:'12 мм высота', mm:12},{px:472,label:'15 мм высота', mm:15},{px:630,label:'20 мм высота', mm:20}],
+    AZTEC:  [{px:472,label:'15×15 мм', mm:15},{px:630,label:'20×20 мм', mm:20},{px:787,label:'25×25 мм', mm:25},{px:945,label:'30×30 мм', mm:30}]
   };
   const LIMITS = { QR: 2953, DM: 1556, C128: 80, PDF417: 1800, AZTEC: 1900 };
 
@@ -273,7 +273,7 @@
     (PRESETS[t] || PRESETS.QR).forEach((p, i) => {
       const opt = document.createElement('option');
       opt.value = p.px; opt.textContent = p.label;
-      if (i === 0) opt.selected = true;  // Default to high-res option
+      if (i === 1) opt.selected = true;  // Default to 20mm option
       sizePreset.appendChild(opt);
     });
   }
@@ -494,10 +494,16 @@
   }
 
   function planGridSame(mm){
-    const pageW = 210, pageH = 297, margin = 5, gap = 4;
+    // GOST-compliant grid calculation for A4 page (210×297mm)
+    const pageW = 210, pageH = 297, margin = 5, gap = 2; // Optimal gap for GOST sizing
     const cw = mm, ch = mm;
-    const cols = Math.max(1, Math.floor((pageW - 2*margin + gap) / (cw + gap)));
-    const rows = Math.max(1, Math.floor((pageH - 2*margin + gap) / (ch + gap)));
+    
+    // Calculate exact fit based on physical dimensions
+    const availW = pageW - 2*margin;
+    const availH = pageH - 2*margin;
+    const cols = Math.max(1, Math.floor((availW + gap) / (cw + gap)));
+    const rows = Math.max(1, Math.floor((availH + gap) / (ch + gap)));
+    
     return {cols, rows, gap, margin, cw, ch};
   }
 
@@ -559,16 +565,18 @@
     const activeElement = document.activeElement;
     const allInputs = document.querySelectorAll('input, textarea');
     
-    const pageW = 210, pageH = 297, margin = 5, gap = 4;
+    const pageW = 210, pageH = 297, margin = 5, gap = 2; // GOST-compliant layout
     let x = margin, y = margin, rowH = 0;
     let items = '';
     function add(imgUrl, mm){
       const w = mm, h = mm;
+      // Check if code fits in current row
       if (x + w > pageW - margin + 0.01){
         x = margin;
         y += rowH + gap;
         rowH = 0;
       }
+      // Check if code fits on page
       if (y + h > pageH - margin + 0.01) return false;
       items += `<img src="${imgUrl}" style="position:absolute; left:${x}mm; top:${y}mm; width:${w}mm; height:${h}mm; image-rendering: pixelated;">`;
       x += w + gap;
