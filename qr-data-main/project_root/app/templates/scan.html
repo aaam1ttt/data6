@@ -114,6 +114,8 @@
   let cameraStream=null;
   let autoScanInterval=null;
   let scanStatus=document.getElementById('scanStatus');
+  let isCapturing=false;
+  let lastCaptureTime=0;
 
   function autoGrow(el){ if(!el) return; el.style.height='auto'; el.style.height=(el.scrollHeight+2)+'px'; }
   function showAlert(type,msg){const c=type==='error'?'error':(type==='success'?'success':''); alerts.innerHTML=`<div class="alert ${c}">${msg}</div>`}
@@ -145,6 +147,9 @@
     cameraModal.style.display='none'; cameraBackdrop.style.display='none';
     document.body.style.overflow='';
     stopCamera();
+    // Сброс статуса при закрытии
+    scanStatus.textContent='Ищу код...';
+    scanStatus.style.background='rgba(0,0,0,0.7)';
   }
   async function startCamera(){
     try{
@@ -171,11 +176,12 @@
   
   function startAutoScan(){
     if(autoScanInterval) return;
+    isCapturing=false;
     autoScanInterval=setInterval(()=>{
-      if(cameraStream && cameraVideo.readyState >= 2){
+      if(cameraStream && cameraVideo.readyState >= 2 && !isCapturing){
         tryAutoScan();
       }
-    }, 1000); // Сканируем каждую секунду
+    }, 300); // Сканируем чаще для лучшего обнаружения
   }
   
   function stopAutoScan(){
@@ -183,17 +189,33 @@
       clearInterval(autoScanInterval);
       autoScanInterval=null;
     }
+    isCapturing=false;
   }
   
   async function tryAutoScan(){
-    if(!cameraStream) return;
+    if(!cameraStream || isCapturing) return;
     
     const ctx=cameraCanvas.getContext('2d');
     cameraCanvas.width=cameraVideo.videoWidth;
     cameraCanvas.height=cameraVideo.videoHeight;
     ctx.drawImage(cameraVideo,0,0);
     
-    // Отправляем на сервер для сканирования
+    // Проверяем качество изображения
+    const clarity=calculateImageClarity(ctx, cameraCanvas.width, cameraCanvas.height);
+    const brightnessVariance=calculateBrightnessVariance(ctx, cameraCanvas.width, cameraCanvas.height);
+    const qualityScore=clarity*brightnessVariance;
+    
+    scanStatus.textContent=`Качество: ${Math.round(qualityScore*100)}% - ${qualityScore>0.15?'Сканирую...':'Наведите четче'}`;
+    
+    // Проверяем минимальный порог качества
+    if(qualityScore<0.15){
+      scanStatus.style.background='rgba(239,68,68,0.8)';
+      return;
+    }
+    
+    scanStatus.style.background='rgba(59,130,246,0.8)';
+    
+    // Отправляем на сервер для сканирования только если качество достаточное
     cameraCanvas.toBlob(async (blob)=>{
       const formData=new FormData();
       formData.append('image',blob,'scan.png');
@@ -206,30 +228,88 @@
         const data=await response.json();
         
         if(data && data.ok && data.text){
-          // Код найден!
+          // Код найден! Останавливаем сканирование и обрабатываем результат
+          isCapturing=true;
           stopAutoScan();
-          scanStatus.textContent='Код найден!';
+          scanStatus.textContent='Код найден! Обрабатываю...';
           scanStatus.style.background='rgba(34,197,94,0.8)';
           
+          // Задержка для отображения статуса
           setTimeout(()=>{
             const file=new File([blob],'camera_scan.png',{type:'image/png'});
             hideCameraModal();
             startScan(file);
-          }, 500);
-        } else {
-          scanStatus.textContent='Ищу код...';
-          scanStatus.style.background='rgba(0,0,0,0.7)';
+          }, 1000);
         }
       }catch(err){
         // Игнорируем ошибки автоматического сканирования
       }
-    },'image/png',0.8);
+    },'image/png',0.9);
+  }
+  
+  function calculateImageClarity(ctx, width, height){
+    // Вычисляем четкость используя градиент Собеля
+    const imageData=ctx.getImageData(0, 0, width, height);
+    const data=imageData.data;
+    let totalVariance=0;
+    let count=0;
+    
+    for(let y=1; y<height-1; y++){
+      for(let x=1; x<width-1; x++){
+        const idx=(y*width+x)*4;
+        const gray=data[idx]*0.299+data[idx+1]*0.587+data[idx+2]*0.114;
+        
+        const gx=Math.abs(
+          -data[(y*width+x-1)*4]*0.299-data[(y*width+x-1)*4+1]*0.587-data[(y*width+x-1)*4+2]*0.114+
+          data[(y*width+x+1)*4]*0.299+data[(y*width+x+1)*4+1]*0.587+data[(y*width+x+1)*4+2]*0.114
+        );
+        const gy=Math.abs(
+          -data[((y-1)*width+x)*4]*0.299-data[((y-1)*width+x)*4+1]*0.587-data[((y-1)*width+x)*4+2]*0.114+
+          data[((y+1)*width+x)*4]*0.299+data[((y+1)*width+x)*4+1]*0.587+data[((y+1)*width+x)*4+2]*0.114
+        );
+        
+        totalVariance+=Math.sqrt(gx*gx+gy*gy);
+        count++;
+      }
+    }
+    
+    return Math.min(1, totalVariance/(count*255));
+  }
+  
+  function calculateBrightnessVariance(ctx, width, height){
+    const imageData=ctx.getImageData(0, 0, width, height);
+    const data=imageData.data;
+    let totalBrightness=0;
+    let count=0;
+    
+    for(let i=0; i<data.length; i+=4){
+      const brightness=data[i]*0.299+data[i+1]*0.587+data[i+2]*0.114;
+      totalBrightness+=brightness;
+      count++;
+    }
+    
+    const avgBrightness=totalBrightness/count;
+    let variance=0;
+    
+    for(let i=0; i<data.length; i+=4){
+      const brightness=data[i]*0.299+data[i+1]*0.587+data[i+2]*0.114;
+      variance+=(brightness-avgBrightness)*(brightness-avgBrightness);
+    }
+    
+    const standardDev=Math.sqrt(variance/count);
+    return Math.min(1, standardDev/64); // Нормализуем к диапазону 0-1
   }
   function captureFromCamera(){
-    if(!cameraStream) return;
+    if(!cameraStream || isCapturing) return;
+    
+    isCapturing=true;
+    stopAutoScan();
+    
     const ctx=cameraCanvas.getContext('2d');
-    cameraCanvas.width=cameraVideo.videoWidth; cameraCanvas.height=cameraVideo.videoHeight;
+    cameraCanvas.width=cameraVideo.videoWidth; 
+    cameraCanvas.height=cameraVideo.videoHeight;
     ctx.drawImage(cameraVideo,0,0);
+    
     cameraCanvas.toBlob(blob=>{
       const file=new File([blob],'camera_capture.png',{type:'image/png'});
       hideCameraModal();
