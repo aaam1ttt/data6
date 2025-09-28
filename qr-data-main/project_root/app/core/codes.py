@@ -390,11 +390,11 @@ def generate_by_type(code_type: str, text: str, size: int = 300, human_text: str
         return generate_qr(processed_text, size, "H", gost_code)
     elif code_type_lower in ["dm", "datamatrix", "data_matrix"]:
         return generate_dm(processed_text, size, gost_code)
-    elif code_type_lower == "code128":
+    elif code_type_lower in ["code128", "c128"]:
         return generate_code128(processed_text, size, human_text, gost_code)
     elif code_type_lower == "pdf417":
         return generate_pdf417(processed_text, size, human_text, gost_code)
-    elif code_type_lower == "aztec":
+    elif code_type_lower in ["aztec", "aztec"]:
         return generate_aztec(processed_text, size, gost_code)
     else:
         raise ValueError(f"Неизвестный тип кода: {code_type}")

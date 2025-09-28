@@ -38,11 +38,7 @@
               style="width:100%; background:#0b1220; color:#e6e6e6; border:1px solid #374151; border-radius:8px; padding:10px; resize:none; overflow:hidden; white-space:pre-wrap; line-height:1.4;"></textarea>
   </label>
 
-  <label id="humanTextLabel" style="margin-top:12px; display:none;">Текст под кодом (для Code 128 и PDF417)
-    <input id="humanTextInput" type="text" 
-           style="width:100%; background:#0b1220; color:#e6e6e6; border:1px solid #374151; border-radius:8px; padding:10px;"
-           placeholder="Введите текст, который будет отображаться под штрих-кодом">
-  </label>
+
 
   <label style="display:flex;align-items:center;gap:6px; margin-top:6px;">
     <input type="checkbox" id="allowEdit" style="width:auto;" checked> Разрешить редактирование
@@ -162,8 +158,7 @@
   const sizePreset = document.getElementById('sizePreset');
 
   const textInput  = document.getElementById('textInput');
-  const humanTextLabel = document.getElementById('humanTextLabel');
-  const humanTextInput = document.getElementById('humanTextInput');
+
   const allowEdit  = document.getElementById('allowEdit');
 
   const previewWrap= document.getElementById('previewWrap');
@@ -279,9 +274,7 @@
   }
 
   function toggleHumanTextField(){
-    const t = codeType.value;
-    const showField = t === 'C128' || t === 'PDF417';
-    humanTextLabel.style.display = showField ? 'block' : 'none';
+    // Human text field removed as per requirement
   }
 
   function updateLimitInfo(){
@@ -301,7 +294,7 @@
     if (debounceId){ clearTimeout(debounceId); debounceId=null; }
     clearAlert();
     textInput.value = '';
-    humanTextInput.value = '';
+
     autoGrow(textInput);
     previewImg.src = '';
     lastDataUrl = null;
@@ -318,7 +311,7 @@
   function triggerGenerate(){
     const text = (textInput.value || '').trim();
     const size = parseInt(sizePreset.value || '300');
-    const humanText = (humanTextInput.value || '').trim();
+    const humanText = '';
     if (!text){
       lastDataUrl = null;
       previewWrap.style.display = 'none';
@@ -695,8 +688,7 @@
   textInput.addEventListener('input', () => { autoGrow(textInput); updateLimitInfo(); debouncedGenerate(); });
   textInput.addEventListener('paste', () => { setTimeout(() => { autoGrow(textInput); updateLimitInfo(); debouncedGenerate(); }, 0); });
 
-  humanTextInput.addEventListener('input', debouncedGenerate);
-  humanTextInput.addEventListener('paste', () => { setTimeout(debouncedGenerate, 0); });
+
 
   allowEdit.addEventListener('change', () => {
     const editable = allowEdit.checked;
