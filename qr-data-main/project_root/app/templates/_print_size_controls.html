@@ -1,0 +1,165 @@
+<!-- Collapsible Print Controls -->
+<div class="dropdown" style="position:relative; display:inline-block;">
+  <button id="printBtn" class="btn" type="button">Печать ▼</button>
+  <div id="printDropdown" class="dropdown-content" style="display:none; position:absolute; top:100%; left:0; background:#1e293b; border:1px solid #374151; border-radius:8px; min-width:250px; z-index:1000; box-shadow:0 4px 6px rgba(0,0,0,0.1);">
+    <div style="padding:8px 12px; border-bottom:1px solid #374151;">
+      <label style="font-size:12px; color:#9ca3af; display:block; margin-bottom:4px;">Размер печати</label>
+      <select id="printSizeSelect" style="width:100%; padding:4px 8px; border-radius:4px; background:#0f172a; color:#e6e6e6; border:1px solid #374151; font-size:12px;">
+        <!-- Options will be populated by JavaScript -->
+      </select>
+    </div>
+    <button id="printExecuteBtn" class="dropdown-item" type="button">Печать с выбранным размером</button>
+  </div>
+</div>
+
+<style>
+  .dropdown-item {
+    display:block; width:100%; padding:8px 12px; background:none; border:none; color:#e6e6e6; text-align:left; cursor:pointer; border-bottom:1px solid #374151;
+  }
+  .dropdown-item:hover { background:#374151; }
+  .dropdown-item:last-child { border-bottom:none; }
+  .dropdown-item.danger { color:#ef4444; }
+  .dropdown-item.danger:hover { background:#7f1d1d; }
+</style>
+
+<script>
+(function(){
+  const PRINT_PRESETS = {
+    QR: [
+      {px: 300, label: '300 px (стандарт)', mm: 20},
+      {px: 420, label: '420 px', mm: 28},
+      {px: 600, label: '600 px', mm: 40}
+    ],
+    DM: [
+      {px: 280, label: '280 px (стандарт)', mm: 16},
+      {px: 360, label: '360 px', mm: 22},
+      {px: 520, label: '520 px', mm: 32}
+    ],
+    C128: [
+      {px: 200, label: '200 px (высота)', mm: 15},
+      {px: 280, label: '280 px', mm: 20},
+      {px: 360, label: '360 px', mm: 26}
+    ],
+    PDF417: [
+      {px: 200, label: '200 px (высота)', mm: 15},
+      {px: 280, label: '280 px', mm: 20},
+      {px: 360, label: '360 px', mm: 26}
+    ],
+    AZTEC: [
+      {px: 300, label: '300 px', mm: 20},
+      {px: 420, label: '420 px', mm: 28},
+      {px: 600, label: '600 px', mm: 40}
+    ]
+  };
+
+  function initPrintSizeControls(codeType, currentSize, encodedText) {
+    const printBtn = document.getElementById('printBtn');
+    const printDropdown = document.getElementById('printDropdown');
+    const printSizeSelect = document.getElementById('printSizeSelect');
+    const printExecuteBtn = document.getElementById('printExecuteBtn');
+
+    if (!printBtn || !printDropdown || !printSizeSelect || !printExecuteBtn) return;
+
+    // Populate size options
+    function fillPrintSizes(type, current) {
+      printSizeSelect.innerHTML = '';
+      (PRINT_PRESETS[type] || PRINT_PRESETS.QR).forEach((p, i) => {
+        const opt = document.createElement('option');
+        opt.value = p.px;
+        opt.textContent = p.label;
+        opt.dataset.mm = p.mm;
+        if (current ? String(p.px) == String(current) : i === 0) {
+          opt.selected = true;
+        }
+        printSizeSelect.appendChild(opt);
+      });
+    }
+
+    fillPrintSizes(codeType, currentSize);
+
+    // Toggle dropdown
+    function togglePrintDropdown() {
+      printDropdown.style.display = printDropdown.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function hidePrintDropdown() {
+      printDropdown.style.display = 'none';
+    }
+
+    // Generate code at selected size and print
+    async function printWithSelectedSize() {
+      const selectedSize = parseInt(printSizeSelect.value);
+      const selectedMM = parseFloat(printSizeSelect.selectedOptions[0].dataset.mm);
+      
+      try {
+        const response = await fetch('{{ url_for("forms.api_generate_code") }}', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: encodedText,
+            code_type: codeType,
+            size: selectedSize
+          })
+        });
+        
+        const data = await response.json();
+        if (!data || !data.ok) {
+          alert('Ошибка генерации кода для печати');
+          return;
+        }
+
+        // Open print window with the generated code
+        const html = `
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <title>Печать кода</title>
+            <style>
+              @page { size: A4; margin: 5mm; }
+              html,body { margin:0; padding:0; }
+              .wrap { width:210mm; height:297mm; position:relative; }
+              .code { position:absolute; left:0; top:0; width:${selectedMM}mm; height:${selectedMM}mm; image-rendering: pixelated; }
+            </style>
+          </head>
+          <body>
+            <div class="wrap">
+              <img class="code" src="${data.data_url}">
+            </div>
+            <script>window.onload = () => { window.print(); setTimeout(() => window.close(), 300); }<\/script>
+          </body>
+          </html>`;
+        
+        const w = window.open('', '_blank');
+        if (w) {
+          w.document.write(html);
+          w.document.close();
+        }
+        
+        hidePrintDropdown();
+      } catch (error) {
+        alert('Ошибка сети при печати');
+      }
+    }
+
+    // Event listeners
+    printBtn.addEventListener('click', togglePrintDropdown);
+    printExecuteBtn.addEventListener('click', printWithSelectedSize);
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!printBtn.contains(e.target) && !printDropdown.contains(e.target)) {
+        hidePrintDropdown();
+      }
+    });
+
+    // Return API for external use
+    return {
+      updateCodeType: fillPrintSizes,
+      hide: hidePrintDropdown
+    };
+  }
+
+  // Make the function globally available
+  window.initPrintSizeControls = initPrintSizeControls;
+})();
+</script>

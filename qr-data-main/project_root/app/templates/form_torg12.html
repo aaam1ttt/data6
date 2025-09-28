@@ -75,7 +75,7 @@
 
         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:10px;">
           <button id="saveOne" class="btn primary" type="button">Сохранить</button>
-          <button id="print" class="btn" type="button">Печать</button>
+          {% include '_print_size_controls.html' %}
           <a class="btn danger" href="{{ url_for('forms.form_torg12') }}">Удалить</a>
         </div>
 
@@ -190,12 +190,10 @@
 
   document.getElementById('saveOne').addEventListener('click', () => { saveSmart().catch(()=>{ document.getElementById('sf').submit(); }); });
 
-  document.getElementById('print').addEventListener('click', ()=>{
-    const img = document.querySelector('img[alt="code"]').src;
-    const w = window.open('','_blank');
-    w.document.write(`<html><head><title>Печать кода</title><style>html,body{margin:0;padding:0}</style></head><body><img src="${img}" style="max-width:100%;display:block;margin:0 auto;"><script>window.onload=()=>{window.print();setTimeout(()=>window.close(),300)}<\/script></body></html>`);
-    w.document.close();
-  });
+  // Initialize print size controls
+  if (window.initPrintSizeControls) {
+    window.initPrintSizeControls("{{ code_type or 'QR' }}", {{ size or 300 }}, "{{ encoded }}");
+  }
   {% endif %}
 })();
 </script>
