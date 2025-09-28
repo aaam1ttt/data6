@@ -20,8 +20,6 @@
     </label>
   </div>
 
-  <div id="limitInfo" class="muted" style="margin-top:6px;"></div>
-
   <div id="previewWrap" class="card" style="margin-top:12px; position:relative; display:none; justify-content:center;">
     <div style="width:100%; display:flex; justify-content:center;">
       <img id="previewImg" alt="preview" style="max-width:100%; max-height:420px; object-fit:contain; border-radius:10px;"/>
@@ -32,6 +30,8 @@
                   animation: scanMove 1.1s linear infinite;"></div>
     </div>
   </div>
+
+  <div id="limitInfo" class="muted" style="margin-top:6px; text-align:center;"></div>
 
   <label style="margin-top:12px;">Текст
     <textarea id="textInput" rows="5" class="autogrow"
@@ -285,13 +285,11 @@
   function updateLimitInfo(){
     const t = codeType.value;
     const maxBytes = LIMITS[t] || 0;
-    const used = utf8len(textInput.value.trim());
-    const remainBytes = Math.max(0, maxBytes - used);
-    let avg = used ? (used / (textInput.value.length || 1)) : 1;
-    if (!isFinite(avg) || avg <= 0) avg = 1;
-    const remainChars = Math.floor(remainBytes / avg);
-    limitInfo.textContent = `Осталось ≈ ${remainChars} символов`;
-    const over = used > maxBytes;
+    const text = textInput.value || '';
+    const charCount = text.length;
+    const remainingChars = Math.max(0, maxBytes - charCount);
+    limitInfo.textContent = `Осталось ${remainingChars} символов из ${maxBytes}`;
+    const over = charCount > maxBytes;
     limitInfo.style.color = over ? '#ffb4b4' : '';
     return !over;
   }
