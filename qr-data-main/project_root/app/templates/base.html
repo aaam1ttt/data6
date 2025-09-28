@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+  <link rel="alternate icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32.png') }}">
+  <link rel="alternate icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon-16.png') }}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
+  <meta charset="utf-8">
+  <title>{{ title or "App" }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root{--bg:#0e1117;--card:#1f2937;--text:#e6e6e6;--muted:#9ca3af;--accent:#3b82f6;--danger:#ef4444;--ok:#10b981;--input:#0b1220;--line:#374151;--cell:#0f172a;--cell2:#101c30}
+    *{box-sizing:border-box}
+    body{font-family:Arial, sans-serif;background:var(--bg);color:var(--text);margin:0}
+    .wrap{max-width:1100px;margin:40px auto;padding:0 16px}
+    .card{background:var(--card);border-radius:12px;padding:24px}
+    a{color:var(--accent);text-decoration:none}
+    h1,h2,h3{margin:0 0 12px}
+    .muted{color:var(--muted)}
+    .btn{display:inline-block;padding:10px 16px;border-radius:10px;background:#334155;color:#fff;border:none;cursor:pointer}
+    .btn.primary{background:var(--accent)}
+    .btn.danger{background:var(--danger)}
+    .btn.ok{background:var(--ok)}
+    .alert{padding:10px 12px;border-radius:10px;margin:8px 0}
+    .alert.error{background:#3b0d0d;color:#ffb4b4}
+    .alert.success{background:#0f2e1f;color:#a7f3d0}
+    input,select,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--input);color:var(--text)}
+    form.grid{display:grid;grid-gap:12px}
+    .two{display:grid;grid-template-columns:1fr 1fr;grid-gap:16px}
+    .center{text-align:center}
+    .hint{font-size:13px;color:#9ca3af}
+    header.topbar{position:relative;display:flex;align-items:center;gap:12px;margin-bottom:24px}
+    .brand{font-weight:700;letter-spacing:.3px}
+    .nav{display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap}
+    .nav a{padding:8px 12px;border-radius:10px;background:#334155;color:#fff;white-space:nowrap}
+    .nav a.logout{background:#475569}
+    .nav a.admin{background:var(--accent)}
+    #nav-toggle{display:none}
+    .hamburger{display:none;margin-left:auto;padding:8px 12px;border-radius:10px;background:#334155;color:#fff;cursor:pointer;user-select:none}
+    @media (max-width:900px){
+      .hamburger{display:block}
+      .nav{display:none;position:absolute;top:100%;right:0;left:0;background:var(--card);padding:12px 16px;border-radius:12px;flex-direction:column;gap:10px;margin-top:8px;z-index:100}
+      #nav-toggle:checked + label.hamburger + nav.nav{display:flex}
+    }
+    table{width:100%;border-collapse:separate;border-spacing:0;overflow:hidden;border-radius:10px}
+    thead th{position:sticky;top:0;background:#1b2435;z-index:1}
+    th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left}
+    tbody tr:nth-child(2n){background:var(--cell2)}
+    tbody tr:nth-child(2n+1){background:var(--cell)}
+    td input,td select,td textarea{background:#0b152a;border-color:#2b3a55}
+    .row-actions form{display:inline;margin-right:6px}
+    .counter{font-size:13px;margin-top:6px}
+    .counter.warn{color:#ffcc66}
+    .counter.bad{color:#ff8080}
+    /* === Главная: мини-карточки (две в одну строку) === */
+/* === Главная: две квадратные плитки по центру === */
+.hero-actions{
+  display:flex;
+  justify-content:center;     /* по центру */
+  align-items:flex-start;
+  gap:28px;                   /* расстояние между плитками */
+  flex-wrap:wrap;             /* на узком экране уйдут в столбик */
+  margin-top:18px;
+}
+
+.square{
+  width:300px;                /* сторона квадрата + кнопка ниже */
+  display:flex;
+  flex-direction:column;
+}
+
+.square .imgbox{
+  width:100%;
+  aspect-ratio:1/1;           /* делает ровный квадрат */
+  border-radius:16px;          /* скругляем края */
+  overflow:hidden;             /* без чёрных полос и артефактов */
+}
+
+.square .imgbox img{
+  width:100%;
+  height:100%;
+  object-fit:cover;           /* заполняет весь квадрат без полос */
+  display:block;
+}
+
+.square .btn{
+  width:100%;
+  margin-top:12px;
+}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="topbar">
+      <div class="brand">DM/QR App</div>
+      <input id="nav-toggle" type="checkbox">
+      <label for="nav-toggle" class="hamburger">Меню</label>
+      <nav class="nav">
+        <a href="{{ url_for('main.home') }}">Главная</a>
+        <a href="{{ url_for('scan.scan_page') }}">Сканировать</a>
+        <a href="{{ url_for('forms.create_free') }}">Создать код</a>
+        <a href="{{ url_for('main.history_page') }}">История</a>
+        {% if session.get('user') and session['user']['is_admin'] %}
+          <a class="admin" href="{{ url_for('admin.users_page') }}">Пользователи</a>
+        {% endif %}
+        {% if session.get('user') %}
+          <a class="logout" href="{{ url_for('auth.logout') }}">Выйти ({{ session['user']['username'] }})</a>
+        {% else %}
+          <a class="logout" href="{{ url_for('auth.login') }}">Войти</a>
+        {% endif %}
+      </nav>
+    </header>
+
+    {% with msgs = get_flashed_messages(with_categories=True) %}
+      {% if msgs %}
+        {% for cat, msg in msgs %}
+          <div class="alert {{ cat }}">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </div>
+</body>
+</html>

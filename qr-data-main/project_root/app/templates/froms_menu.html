@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Формы{% endblock %}
+{% block content %}
+<h1>Выбери форму</h1>
+<div class="center-buttons">
+  <a class="bigbtn" href="{{ url_for('forms.torg12_page') }}">ТОРГ-12</a>
+  <a class="bigbtn" href="{{ url_for('forms.env_page') }}">Состав конверта сообщения</a>
+  <a class="bigbtn" href="{{ url_for('forms.exp_page') }}">Эксплуатационная структура</a>
+  <a class="bigbtn" href="{{ url_for('forms.trn_page') }}">Транспортная маркировка</a>
+</div>
+{% endblock %}

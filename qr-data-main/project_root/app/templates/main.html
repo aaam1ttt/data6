@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Главное меню{% endblock %}
+{% block content %}
+<div class="center-buttons">
+  <a class="bigbtn" href="{{ url_for('create.page') }}">Создать (ввод вручную)</a>
+  <a class="bigbtn" href="{{ url_for('scan.page') }}">Сканировать</a>
+  <a class="bigbtn" href="{{ url_for('forms.menu') }}">Заполнить форму</a>
+</div>
+{% endblock %}

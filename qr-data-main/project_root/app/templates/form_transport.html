@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card" style="max-width: 1100px; margin: 0 auto;">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+  <a class="btn" href="{{ url_for('forms.create_free') }}">← Назад</a>
+  <h2>Транспортная маркировка</h2>
+</div>
+
+  {% if not result_image %}
+  <form id="f" method="post" class="grid" style="margin-top:12px;">
+    <div class="two" style="align-items:end;">
+      <label>Тип кода
+        <select name="code_type" id="code_type">
+          <option value="QR" {% if code_type=='QR' %}selected{% endif %}>QR</option>
+          <option value="DM" {% if code_type=='DM' %}selected{% endif %}>DataMatrix</option>
+          <option value="C128" {% if code_type=='C128' %}selected{% endif %}>Code 128</option>
+          <option value="PDF417" {% if code_type=='PDF417' %}selected{% endif %}>PDF417</option>
+          <option value="AZTEC" {% if code_type=='AZTEC' %}selected{% endif %}>Aztec</option>
+        </select>
+      </label>
+      <label>Размер
+        <select name="size" id="size"></select>
+      </label>
+    </div>
+
+    <div class="table-wrap" style="overflow:auto;margin-top:8px;">
+      <table>
+        <thead>
+          <tr>
+            <th>Номер знака</th>
+            <th>Значение</th>
+            <th>Вид данных</th>
+            <th>Цифровое значение</th>
+            <th style="width:120px;"></th>
+          </tr>
+        </thead>
+        <tbody id="tbody">
+          {% for r in rows %}
+          <tr>
+            <td><input name="r{{ loop.index0 }}c0" value="{{ r[0] if r|length>0 else '' }}"></td>
+            <td><input name="r{{ loop.index0 }}c1" value="{{ r[1] if r|length>1 else '' }}"></td>
+            <td><input name="r{{ loop.index0 }}c2" value="{{ r[2] if r|length>2 else '' }}"></td>
+            <td><input name="r{{ loop.index0 }}c3" value="{{ r[3] if r|length>3 else '' }}"></td>
+            <td class="row-actions"><button class="btn danger" type="button" onclick="delRow(this)">Удалить</button></td>
+          </tr>
+          {% endfor %}
+          <tr id="marker">
+            <td><input name="r{{ rows|length }}c0" type="hidden"></td><td></td><td></td><td></td><td></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="hint" id="charLeft" style="margin-top:6px;">Осталось: 0 символов</div>
+
+    <div style="display:flex;gap:8px;margin-top:12px;align-items:center;flex-wrap:wrap;">
+      <button class="btn" type="button" onclick="addRow()">+ Строка</button>
+      <div style="margin-left:auto;">
+        <button class="btn primary" type="submit">Сформировать</button>
+      </div>
+    </div>
+  </form>
+  {% endif %}
+
+  {% if result_image %}
+  <div class="card" style="margin-top:16px;">
+    <h3>Готово</h3>
+
+    <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;">
+      <img src="{{ result_image }}" alt="code" style="max-width:320px;display:block;border-radius:8px;">
+
+      <div style="flex:1;min-width:280px;">
+        <label>Сформированная строка</label>
+        <textarea id="encText" readonly rows="6"
+          style="width:100%;background:#0b1220;color:#e6e6e6;border:1px solid #374151;border-radius:8px;padding:10px;resize:none;overflow:hidden;white-space:pre-wrap;line-height:1.4;">{{ encoded }}</textarea>
+
+        <div class="two" style="margin-top:10px;align-items:end;">
+          <label>Формат
+            <select id="fmt">
+              <option value="png">PNG</option>
+              <option value="jpg">JPG</option>
+              <option value="pdf">PDF</option>
+            </select>
+          </label>
+          <div></div>
+        </div>
+
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:10px;">
+          <button id="saveOne" class="btn primary" type="button">Сохранить</button>
+          <button id="print" class="btn" type="button">Печать</button>
+          <a class="btn danger" href="{{ url_for('forms.form_transport') }}">Удалить</a>
+        </div>
+
+        <div class="hint" id="fsHint" style="margin-top:6px;display:none;">Браузер не поддерживает выбор места сохранения — будет обычная загрузка файла.</div>
+      </div>
+    </div>
+  </div>
+
+  <form id="sf" method="post" action="{{ url_for('forms.api_save_code') }}" target="_blank" style="display:none;">
+    <input type="hidden" name="text" value="{{ encoded }}">
+    <input type="hidden" name="code_type" value="{{ code_type or 'QR' }}">
+    <input type="hidden" name="size" value="{{ size or 300 }}">
+    <input type="hidden" name="fmt" id="sfmt" value="png">
+  </form>
+  {% endif %}
+</div>
+
+<style>
+  .table-wrap table { width:100%; border-collapse:collapse; }
+  .table-wrap th, .table-wrap td { padding:10px; border-bottom:1px solid #374151; text-align:left; }
+  .table-wrap th { color:#cbd5e1; }
+  .table-wrap input { width:100%; padding:10px; border-radius:8px; border:1px solid #374151; background:#0f172a; color:#e6e6e6; }
+</style>
+
+<script>
+(function(){
+  const PRESETS={ QR:[{v:300,l:'300 px (стандарт)'},{v:420,l:'420 px'},{v:600,l:'600 px'}],
+                  DM:[{v:280,l:'280 px (стандарт)'},{v:360,l:'360 px'},{v:520,l:'520 px'}],
+                  C128:[{v:200,l:'200 px (высота)'},{v:280,l:'280 px'},{v:360,l:'360 px'}],
+                  PDF417:[{v:200,l:'200 px (высота)'},{v:280,l:'280 px'},{v:360,l:'360 px'}],
+                  AZTEC:[{v:300,l:'300 px'},{v:420,l:'420 px'},{v:600,l:'600 px'}] };
+  const LIMITS_CHAR={ QR:1850, DM:3116, C128:80, PDF417:1800, AZTEC:1900 };
+
+  function fill(select, type, current){
+    select.innerHTML='';
+    (PRESETS[type]||PRESETS.QR).forEach((p,i)=>{
+      const o=document.createElement('option'); o.value=p.v; o.textContent=p.l;
+      if(current?String(p.v)==String(current):i===0) o.selected=true;
+      select.appendChild(o);
+    });
+  }
+
+  {% if not result_image %}
+  const t=document.getElementById('code_type');
+  const s=document.getElementById('size');
+  fill(s, t.value, {{ size or 300 }});
+  t.addEventListener('change', ()=>{ fill(s, t.value); updateCounter(); });
+
+  const tbody=document.getElementById('tbody');
+  const charLeft=document.getElementById('charLeft');
+
+  function encodePreview(){
+    const rows=[...tbody.querySelectorAll('tr')].filter(tr=>tr.id!=='marker').map(tr=>{
+      const c0=tr.querySelector('input[name^="r"][name$="c0"]')?.value||'';
+      const c1=tr.querySelector('input[name^="r"][name$="c1"]')?.value||'';
+      const c2=tr.querySelector('input[name^="r"][name$="c2"]')?.value||'';
+      const c3=tr.querySelector('input[name^="r"][name$="c3"]')?.value||'';
+      return [c0,c1,c2,c3].join('|');
+    }).filter(line=>line.replace(/\|/g,'').length>0);
+    return `TRN>${rows.join('/')}<TRN`;
+  }
+
+  function updateCounter(){
+    const lim=LIMITS_CHAR[t.value]||LIMITS_CHAR.QR;
+    const used=encodePreview().length;
+    const left=Math.max(0, lim-used);
+    charLeft.textContent=`Осталось: ${left} символов`;
+    charLeft.style.color = left===0 ? '#ef4444' : (left < Math.round(lim*0.15) ? '#f59e0b' : '');
+  }
+
+  window.addRow=function(){
+    const idx=[...tbody.querySelectorAll('tr')].length-1;
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td><input name="r${idx}c0" value=""></td>
+      <td><input name="r${idx}c1" value=""></td>
+      <td><input name="r${idx}c2" value=""></td>
+      <td><input name="r${idx}c3" value=""></td>
+      <td class="row-actions"><button class="btn danger" type="button" onclick="delRow(this)">Удалить</button></td>`;
+    tbody.insertBefore(tr, document.getElementById('marker'));
+    tr.querySelectorAll('input').forEach(inp=>inp.addEventListener('input', updateCounter));
+    updateCounter();
+  }
+
+  window.delRow=function(btn){
+    const tr=btn.closest('tr'); tr.remove(); renumber(); updateCounter();
+  }
+
+  function renumber(){
+    [...tbody.querySelectorAll('tr')].forEach((tr,i)=>{
+      if(tr.id==='marker') return;
+      for(let c=0;c<4;c++){
+        const inp=tr.querySelector(`input[name^="r"][name$="c${c}"]`);
+        if(inp) inp.name=`r${i}c${c}`;
+      }
+    });
+  }
+
+  [...tbody.querySelectorAll('input')].forEach(inp=>inp.addEventListener('input', updateCounter));
+  updateCounter();
+  {% else %}
+  function autoGrow(el){ el.style.height='auto'; el.style.height=(el.scrollHeight+2)+'px'; }
+  const encEl=document.getElementById('encText'); if(encEl) autoGrow(encEl);
+
+  async function getDataUrl(){
+    const text = encEl.value || '';
+    const code_type = "{{ code_type or 'QR' }}";
+    const size = Number("{{ size or 300 }}");
+    const r = await fetch('{{ url_for("forms.api_generate_code") }}',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ text, code_type, size })
+    });
+    const j = await r.json();
+    if(!j || !j.ok) throw new Error('gen failed');
+    return j.data_url;
+  }
+
+  async function saveSmart(){
+    const fmt = document.getElementById('fmt').value;
+    if(!('showSaveFilePicker' in window)){
+      document.getElementById('fsHint').style.display='block';
+      document.getElementById('sfmt').value = fmt;
+      document.getElementById('sf').submit();зшз
+      return;
+    }
+    if(fmt==='pdf'){
+      document.getElementById('sfmt').value='pdf';
+      document.getElementById('sf').submit();
+      return;
+    }
+    const suggested = 'transport_code.'+fmt;
+    const handle = await window.showSaveFilePicker({
+      suggestedName: suggested,
+      types: [{description:'Изображение', accept:{'image/png':['.png'],'image/jpeg':['.jpg','.jpeg']}}]
+    });
+    const dataUrl = await getDataUrl();
+    const res = await fetch(dataUrl);
+    let blob = await res.blob();
+
+    if(fmt==='jpg'){
+      const bmp = await createImageBitmap(blob);
+      const canvas = document.createElement('canvas'); canvas.width=bmp.width; canvas.height=bmp.height;
+      const ctx = canvas.getContext('2d'); ctx.drawImage(bmp,0,0);
+      blob = await new Promise(r=>canvas.toBlob(r,'image/jpeg',0.95));
+    }
+
+    const stream = await handle.createWritable();
+    await stream.write(blob);
+    await stream.close();
+  }
+
+  document.getElementById('saveOne')?.addEventListener('click', () => { saveSmart().catch(()=>{ document.getElementById('sf').submit(); }); });
+  document.getElementById('print')?.addEventListener('click', ()=>{
+    const img = document.querySelector('img[alt="code"]').src;
+    const w = window.open('','_blank');
+    w.document.write(`<html><head><title>Печать кода</title><style>html,body{margin:0;padding:0}</style></head><body><img src="${img}" style="max-width:100%;display:block;margin:0 auto;"><script>window.onload=()=>{window.print();setTimeout(()=>window.close(),300)}<\/script></body></html>`);
+    w.document.close();
+  });
+  {% endif %}
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card" style="max-width:980px;margin:0 auto;">
+
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+    <a class="btn" href="{{ url_for('forms.create_free') }}">← Назад</a>
+    <h2>ТОРГ-12</h2>
+  </div>
+
+  {% if not result_image %}
+  <form method="post" class="grid" style="margin-top:12px;" id="torgForm">
+    <div class="two" style="align-items:end;">
+      <label>Тип кода
+        <select name="code_type" id="t_type">
+          <option value="QR" {% if code_type=='QR' %}selected{% endif %}>QR</option>
+          <option value="DM" {% if code_type=='DM' %}selected{% endif %}>DataMatrix</option>
+          <option value="C128" {% if code_type=='C128' %}selected{% endif %}>Code 128</option>
+          <option value="PDF417" {% if code_type=='PDF417' %}selected{% endif %}>PDF417</option>
+          <option value="AZTEC" {% if code_type=='AZTEC' %}selected{% endif %}>Aztec</option>
+        </select>
+      </label>
+      <label>Размер
+        <select name="size" id="t_size"></select>
+      </label>
+    </div>
+
+    <div class="table-wrap" style="overflow:auto;margin-top:8px;">
+      <table>
+        <thead>
+          <tr><th>Код</th><th>Наименование</th><th>Значение</th></tr>
+        </thead>
+        <tbody id="torgBody">
+          {% for code, label in fields %}
+          <tr>
+            <td>{{ code }}</td>
+            <td>{{ label }}</td>
+            <td><input name="f_{{ code }}" value="{{ (initial[code] if initial else '') | default('') }}"></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="counter" id="cnt">Осталось: 0 символов</div>
+
+    <div style="display:flex;gap:8px;margin-top:12px;align-items:center;flex-wrap:wrap;">
+      <button class="btn primary" type="submit">Сформировать</button>
+      <label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" id="readonlyToggle" style="width:auto;"> Заблокировать редактирование</label>
+    </div>
+  </form>
+  {% endif %}
+
+  {% if result_image %}
+  <div class="card" style="margin-top:16px;">
+    <h3>Готово</h3>
+
+    <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;">
+      <img src="{{ result_image }}" alt="code" style="max-width:320px;display:block;border-radius:8px;">
+
+      <div style="flex:1;min-width:280px;">
+        <label>Сформированная строка</label>
+        <textarea id="encText" readonly rows="6"
+          style="width:100%;background:#0b1220;color:#e6e6e6;border:1px solid #374151;border-radius:8px;padding:10px;resize:none;overflow:hidden;white-space:pre-wrap;line-height:1.4;">{{ encoded }}</textarea>
+
+        <div class="two" style="margin-top:10px;align-items:end;">
+          <label>Формат
+            <select id="fmt">
+              <option value="png">PNG</option>
+              <option value="jpg">JPG</option>
+              <option value="pdf">PDF</option>
+            </select>
+          </label>
+          <div></div>
+        </div>
+
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:10px;">
+          <button id="saveOne" class="btn primary" type="button">Сохранить</button>
+          <button id="print" class="btn" type="button">Печать</button>
+          <a class="btn danger" href="{{ url_for('forms.form_torg12') }}">Удалить</a>
+        </div>
+
+        <div class="hint" id="fsHint" style="margin-top:6px;display:none;">Браузер не поддерживает выбор места сохранения — будет обычная загрузка файла.</div>
+      </div>
+    </div>
+  </div>
+
+  <form id="sf" method="post" action="{{ url_for('forms.api_save_code') }}" target="_blank" style="display:none;">
+    <input type="hidden" name="text" value="{{ encoded }}">
+    <input type="hidden" name="code_type" value="{{ code_type or 'QR' }}">
+    <input type="hidden" name="size" value="{{ size or 300 }}">
+    <input type="hidden" name="fmt" id="sfmt" value="png">
+  </form>
+  {% endif %}
+
+</div>
+
+<script>
+(function(){
+  const PRESETS={QR:[{v:300,l:'300 px (стандарт)'},{v:420,l:'420 px'},{v:600,l:'600 px'}],
+                 DM:[{v:280,l:'280 px (стандарт)'},{v:360,l:'360 px'},{v:520,l:'520 px'}],
+                 C128:[{v:200,l:'200 px (высота)'},{v:280,l:'280 px'},{v:360,l:'360 px'}],
+                 PDF417:[{v:200,l:'200 px (высота)'},{v:280,l:'280 px'},{v:360,l:'360 px'}],
+                 AZTEC:[{v:300,l:'300 px'},{v:420,l:'420 px'},{v:600,l:'600 px'}]};
+  function fill(select,type,current){
+    select.innerHTML='';
+    (PRESETS[type]||PRESETS.QR).forEach((p,i)=>{
+      const opt=document.createElement('option'); opt.value=p.v; opt.textContent=p.l;
+      if(current ? String(p.v)==String(current) : i===0) opt.selected=true;
+      select.appendChild(opt);
+    });
+  }
+
+  {% if not result_image %}
+  const t=document.getElementById('t_type');
+  const s=document.getElementById('t_size');
+  fill(s,t.value,{{ size or 300 }});
+  t.addEventListener('change',()=>{ fill(s,t.value); updateCounter(); });
+
+  const inputs=[...document.querySelectorAll('#torgBody input')];
+  const cnt=document.getElementById('cnt');
+
+  function charLen(str){ return (str||'').length }
+  function currentJoined(){ return inputs.map(el=>el.value).join('|'); }
+
+  function updateCounter(){
+    const lim = t.value==='DM' ? 3116 : 1850; // лимит в символах (приближённо)
+    const used = charLen(currentJoined());
+    const left = Math.max(0, lim - used);
+    cnt.textContent = `Осталось: ${left} символов`;
+    cnt.className = 'counter' + (left===0 ? ' bad' : (left < Math.round(lim*0.15) ? ' warn' : ''));
+  }
+  inputs.forEach(i=>i.addEventListener('input',updateCounter));
+  updateCounter();
+
+  document.getElementById('readonlyToggle').addEventListener('change',e=>{
+    inputs.forEach(i=>i.readOnly=e.target.checked);
+  });
+  {% endif %}
+
+  {% if result_image %}
+  function autoGrow(el){ el.style.height='auto'; el.style.height=(el.scrollHeight+2)+'px'; }
+  const encEl=document.getElementById('encText'); if(encEl) autoGrow(encEl);
+
+  async function getDataUrl(){
+    const text = encEl.value || '';
+    const code_type = "{{ code_type or 'QR' }}";
+    const size = Number("{{ size or 300 }}");
+    const r = await fetch('{{ url_for("forms.api_generate_code") }}',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ text, code_type, size })
+    });
+    const j = await r.json();
+    if(!j || !j.ok) throw new Error('gen failed');
+    return j.data_url;
+  }
+
+  async function saveSmart(){
+    const fmt = document.getElementById('fmt').value;
+    if(!('showSaveFilePicker' in window)){
+      document.getElementById('fsHint').style.display='block';
+      document.getElementById('sfmt').value = fmt;
+      document.getElementById('sf').submit();
+      return;
+    }
+    if(fmt==='pdf'){
+      document.getElementById('sfmt').value='pdf';
+      document.getElementById('sf').submit();
+      return;
+    }
+    const suggested = 'torg12_code.'+fmt;
+    const handle = await window.showSaveFilePicker({
+      suggestedName: suggested,
+      types: [{description:'Изображение', accept:{'image/png':['.png'],'image/jpeg':['.jpg','.jpeg']}}]
+    });
+    const dataUrl = await getDataUrl();
+    const res = await fetch(dataUrl);
+    let blob = await res.blob();
+
+    if(fmt==='jpg'){
+      const bmp = await createImageBitmap(blob);
+      const canvas = document.createElement('canvas'); canvas.width=bmp.width; canvas.height=bmp.height;
+      const ctx = canvas.getContext('2d'); ctx.drawImage(bmp,0,0);
+      blob = await new Promise(r=>canvas.toBlob(r,'image/jpeg',0.95));
+    }
+
+    const stream = await handle.createWritable();
+    await stream.write(blob);
+    await stream.close();
+  }
+
+  document.getElementById('saveOne').addEventListener('click', () => { saveSmart().catch(()=>{ document.getElementById('sf').submit(); }); });
+
+  document.getElementById('print').addEventListener('click', ()=>{
+    const img = document.querySelector('img[alt="code"]').src;
+    const w = window.open('','_blank');
+    w.document.write(`<html><head><title>Печать кода</title><style>html,body{margin:0;padding:0}</style></head><body><img src="${img}" style="max-width:100%;display:block;margin:0 auto;"><script>window.onload=()=>{window.print();setTimeout(()=>window.close(),300)}<\/script></body></html>`);
+    w.document.close();
+  });
+  {% endif %}
+})();
+</script>
+{% endblock %}

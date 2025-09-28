@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Состав конверта сообщения{% endblock %}
+{% block content %}
+<h1>Состав конверта сообщения</h1>
+
+<form method="post" action="{{ url_for('forms.env_make') }}" class="card">
+  <div id="env-rows">
+    {% for p,v in rows %}
+    <div class="row">
+      <input name="param" placeholder="Параметр" value="{{ p }}">
+      <input name="value" placeholder="Значение" value="{{ v }}">
+    </div>
+    {% endfor %}
+  </div>
+  <button type="button" class="btn secondary" onclick="addRow()">+ Строка</button>
+  <button class="btn">Сформировать строку</button>
+</form>
+
+<form method="post" action="{{ url_for('forms.env_excel_export') }}" class="inline">
+  <!-- при экспорте возьмётся текущее содержимое формы, если отправлять вместе, проще сделать JS; оставим базовый экспорт -->
+  <div class="muted">Для экспорта отправь текущую форму</div>
+</form>
+
+<script>
+function addRow(){
+  const wrap = document.getElementById('env-rows');
+  const div = document.createElement('div');
+  div.className='row';
+  div.innerHTML = '<input name="param" placeholder="Параметр"><input name="value" placeholder="Значение">';
+  wrap.appendChild(div);
+}
+</script>
+{% endblock %}

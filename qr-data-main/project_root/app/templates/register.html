@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card" style="max-width:560px;margin:0 auto;">
+  <h2>Регистрация</h2>
+  <form method="post" style="display:grid;grid-gap:12px;margin-top:12px;">
+    <label>Логин
+      <input name="username" required style="width:100%;padding:10px;border-radius:8px;border:1px solid #374151;background:#0b1220;color:#e6e6e6;">
+    </label>
+    <label>Пароль
+      <input name="password" type="password" required style="width:100%;padding:10px;border-radius:8px;border:1px solid #374151;background:#0b1220;color:#e6e6e6;">
+    </label>
+    <label>Повтор пароля
+      <input name="password2" type="password" required style="width:100%;padding:10px;border-radius:8px;border:1px solid #374151;background:#0b1220;color:#e6e6e6;">
+    </label>
+    <button class="btn primary" type="submit">Создать аккаунт</button>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;">
+    <h2>История</h2>
+    <form method="post" action="{{ url_for('main.history_clear') }}" onsubmit="return confirm('Очистить всю историю?');">
+      <button class="btn danger" type="submit">Очистить историю</button>
+    </form>
+  </div>
+
+  <div style="overflow:auto;margin-top:12px; max-height:70vh;">
+    <table>
+      <thead>
+        <tr>
+          <th>Когда</th>
+          <th>Действие</th>
+          <th>Тип</th>
+          <th>Форма</th>
+          <th>Текст (фрагмент)</th>
+          <th>Изображение</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td>{{ r.created_at }}</td>
+          <td>{{ r.action }}</td>
+          <td>{{ r.code_type }}</td>
+          <td>{{ r.form_type or "—" }}</td>
+          <td><code>{{ r.content }}</code></td>
+          <td>
+            {% set p = r.image_path or "" %}
+            {% if p %}
+              {% set fname = p.split('/')[-1].split('\\')[-1] %}
+              {% if 'codes' in p %}
+                <a href="{{ url_for('forms.code_image', filename=fname) }}" target="_blank">
+                  <img src="{{ url_for('forms.code_image', filename=fname) }}" alt="img" style="height:60px;border-radius:6px;">
+                </a>
+              {% elif 'uploads' in p %}
+                <a href="{{ url_for('scan.upload_image', filename=fname) }}" target="_blank">
+                  <img src="{{ url_for('scan.upload_image', filename=fname) }}" alt="img" style="height:60px;border-radius:6px;">
+                </a>
+              {% else %}
+                —
+              {% endif %}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="hint" style="margin-top:8px;">Храним максимум 100 последних записей; если не заходил >10 дней — история очищается при следующем входе.</p>
+</div>
+{% endblock %}

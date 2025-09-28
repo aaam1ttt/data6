@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Создание кода{% endblock %}
+{% block content %}
+<h1>Создать код</h1>
+
+<form method="post" action="{{ url_for('create.make') }}" class="card">
+  <label>Текст
+    <textarea name="text" rows="4">{{ request.args.get('prefill','') }}</textarea>
+  </label>
+
+  <div class="row">
+    <label>Тип кода
+      <select name="code_type">
+        <option value="QR">QR Code</option>
+        <option value="DM">DataMatrix</option>
+        <option value="C128">Code 128</option>
+        <option value="PDF417">PDF417</option>
+        <option value="AZTEC">Aztec</option>
+      </select>
+    </label>
+    <label>Размер (px)
+      <input type="number" name="size" value="{{ size or 300 }}" min="100" max="1200" step="10">
+    </label>
+  </div>
+
+  <button class="btn">Сформировать</button>
+</form>
+
+{% if preview_file %}
+<div class="preview card">
+  <h3>Превью</h3>
+  <img src="{{ url_for('create.file', name=preview_file) }}" alt="code">
+</div>
+{% endif %}
+{% endblock %}

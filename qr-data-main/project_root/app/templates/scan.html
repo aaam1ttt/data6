@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card" style="max-width:900px;margin:0 auto;">
+  <h2 class="center">Сканирование</h2>
+
+  <div id="alerts"></div>
+
+  <div id="dropzone" class="card" style="background:#0b1220;border:1px dashed #374151; text-align:center; padding:22px;">
+    <input id="fileInput" type="file" accept="image/*" style="display:none;">
+    <p class="muted" style="margin:0 0 8px;">Перетащи изображение сюда, кликни чтобы выбрать или нажми Ctrl/⌘+V</p>
+    <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
+      <button class="btn" id="pickBtn" type="button">Выбрать файл</button>
+      <button class="btn" id="cameraBtn" type="button">📷 Камера</button>
+    </div>
+    <div id="fileInfo" class="hint" style="margin-top:8px;">Размер: — (макс. 20 МБ)</div>
+  </div>
+
+  <!-- Камера модальное окно -->
+  <div id="cameraModal" class="card" style="position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:1000; display:none; max-width:90vw; max-height:90vh; background:#1e293b; border:2px solid #374151;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <h3 style="margin:0;">Сканирование через камеру</h3>
+      <button id="closeCameraBtn" class="btn danger" style="padding:4px 8px;">✕</button>
+    </div>
+    <div style="position:relative; background:#000; border-radius:8px; overflow:hidden;">
+      <video id="cameraVideo" autoplay style="width:100%; max-width:640px; display:block;"></video>
+      <canvas id="cameraCanvas" style="display:none;"></canvas>
+      <div id="cameraOverlay" style="position:absolute; top:0; left:0; right:0; bottom:0; pointer-events:none;">
+        <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:300px; height:300px; border:2px solid #3b82f6; border-radius:8px; box-shadow:0 0 0 9999px rgba(0,0,0,0.3);"></div>
+        <div id="scanStatus" style="position:absolute; top:20px; left:20px; background:rgba(0,0,0,0.7); color:#fff; padding:8px 12px; border-radius:4px; font-size:14px;">
+          Ищу код...
+        </div>
+      </div>
+    </div>
+    <div style="display:flex; gap:8px; justify-content:center; margin-top:12px;">
+      <button id="captureBtn" class="btn primary" type="button">📸 Сделать снимок</button>
+      <button id="stopCameraBtn" class="btn danger" type="button">⏹ Остановить</button>
+    </div>
+    <div id="cameraError" class="alert error" style="margin-top:8px; display:none;"></div>
+  </div>
+  <div id="cameraBackdrop" style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:999; display:none;"></div>
+
+  <div id="previewWrap" class="card" style="margin-top:16px; position:relative; display:none; justify-content:center;">
+    <div style="width:100%; display:flex; justify-content:center;">
+      <img id="previewImg" alt="preview" style="max-width:100%; max-height:420px; object-fit:contain; border-radius:10px;"/>
+    </div>
+    <div id="scanOverlay" style="display:none; position:absolute; left:0; right:0; top:0; bottom:0; pointer-events:none; border-radius:10px; overflow:hidden;">
+      <div style="position:absolute; left:0; right:0; top:-50%; height:50%;
+                  background:linear-gradient(to bottom, rgba(59,130,246,0) 0%, rgba(59,130,246,.25) 50%, rgba(59,130,246,0) 100%);
+                  animation: scanMove 1.6s linear infinite;"></div>
+    </div>
+  </div>
+
+  <style>
+    @keyframes scanMove { 0% { top:-60%; } 100% { top:110%; } }
+    .autogrow { resize: none; overflow: hidden; white-space: pre-wrap; line-height: 1.4; }
+  </style>
+
+  <div id="resultCard" class="card" style="margin-top:16px; display:none;">
+    <h3 class="center" style="margin-bottom:8px;">Результат</h3>
+    <p class="center" id="codeType" style="margin:0 0 12px; font-weight:600;"></p>
+
+    <label>Распознанный текст</label>
+    <textarea id="resultText" class="autogrow" readonly rows="6"
+              style="width:100%; background:#0b1220; color:#e6e6e6; border:1px solid #374151; border-radius:8px; padding:10px;"></textarea>
+
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
+      <button id="copyBtn" class="btn" type="button">Копировать</button>
+      <button id="clearBtn" class="btn danger" type="button">Очистить</button>
+      <a id="openFormBtn" class="btn ok" href="#" style="display:none;">Открыть форму</a>
+      <button id="openExcelBtn" class="btn" type="button" style="display:none;">Открыть в Excel</button>
+    </div>
+
+    <form id="excelForm" method="post" action="{{ url_for('scan.export_excel') }}" style="display:none;">
+      <input type="hidden" name="text" id="excelText">
+      <input type="hidden" name="form_type" id="excelFormType">
+    </form>
+  </div>
+</div>
+
+<script>
+(function(){
+  const dropzone=document.getElementById('dropzone');
+  const pickBtn=document.getElementById('pickBtn');
+  const fileInput=document.getElementById('fileInput');
+  const fileInfo=document.getElementById('fileInfo');
+  const alerts=document.getElementById('alerts');
+  const previewWrap=document.getElementById('previewWrap');
+  const previewImg=document.getElementById('previewImg');
+  const scanOverlay=document.getElementById('scanOverlay');
+  const resultCard=document.getElementById('resultCard');
+  const codeTypeEl=document.getElementById('codeType');
+  const resultText=document.getElementById('resultText');
+  const copyBtn=document.getElementById('copyBtn');
+  const clearBtn=document.getElementById('clearBtn');
+  const openFormBtn=document.getElementById('openFormBtn');
+  const openExcelBtn=document.getElementById('openExcelBtn');
+  const excelForm=document.getElementById('excelForm');
+  const excelText=document.getElementById('excelText');
+  const excelFormType=document.getElementById('excelFormType');
+  const TABULAR_FORMS=new Set(['torg12','message','exploitation','transport','custom']);
+  
+  // Камера элементы
+  const cameraBtn=document.getElementById('cameraBtn');
+  const cameraModal=document.getElementById('cameraModal');
+  const cameraBackdrop=document.getElementById('cameraBackdrop');
+  const closeCameraBtn=document.getElementById('closeCameraBtn');
+  const cameraVideo=document.getElementById('cameraVideo');
+  const cameraCanvas=document.getElementById('cameraCanvas');
+  const captureBtn=document.getElementById('captureBtn');
+  const stopCameraBtn=document.getElementById('stopCameraBtn');
+  const cameraError=document.getElementById('cameraError');
+  
+  let currentController=null, currentTimeoutId=null;
+  let cameraStream=null;
+  let autoScanInterval=null;
+  let scanStatus=document.getElementById('scanStatus');
+
+  function autoGrow(el){ if(!el) return; el.style.height='auto'; el.style.height=(el.scrollHeight+2)+'px'; }
+  function showAlert(type,msg){const c=type==='error'?'error':(type==='success'?'success':''); alerts.innerHTML=`<div class="alert ${c}">${msg}</div>`}
+  function clearAlert(){alerts.innerHTML=''}
+  function formatSize(b){ if(!b&&b!==0) return '—'; const mb=b/(1024*1024); if(mb>=0.1) return `${mb.toFixed(2)} МБ`; const kb=b/1024; return `${kb.toFixed(0)} КБ`; }
+  function setScanning(on){ scanOverlay.style.display=on?'block':'none'; if(on) previewWrap.style.display='flex'; }
+
+  function resetUI(full=true){
+    if(currentController){ currentController.abort(); currentController=null; }
+    if(currentTimeoutId){ clearTimeout(currentTimeoutId); currentTimeoutId=null; }
+    if(full){ fileInput.value=''; fileInfo.textContent='Размер: — (макс. 20 МБ)'; previewImg.src=''; previewWrap.style.display='none'; }
+    setScanning(false); resultCard.style.display='none'; openFormBtn.style.display='none'; openExcelBtn.style.display='none'; resultText.value=''; resultText.style.height='';
+  }
+
+  function clientPreview(file){ const url=URL.createObjectURL(file); previewImg.onload=()=>URL.revokeObjectURL(url); previewImg.src=url; previewWrap.style.display='flex'; }
+
+  // Функции камеры
+  function showCameraError(msg){
+    cameraError.textContent=msg; cameraError.style.display='block';
+  }
+  function hideCameraError(){
+    cameraError.style.display='none';
+  }
+  function showCameraModal(){
+    cameraModal.style.display='block'; cameraBackdrop.style.display='block';
+    document.body.style.overflow='hidden';
+  }
+  function hideCameraModal(){
+    cameraModal.style.display='none'; cameraBackdrop.style.display='none';
+    document.body.style.overflow='';
+    stopCamera();
+  }
+  async function startCamera(){
+    try{
+      hideCameraError();
+      cameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}}); 
+      cameraVideo.srcObject=cameraStream;
+      captureBtn.disabled=false; stopCameraBtn.disabled=false;
+      
+      // Запускаем автоматическое сканирование
+      startAutoScan();
+    }catch(err){
+      showCameraError('Не удалось получить доступ к камере: '+err.message);
+      captureBtn.disabled=true; stopCameraBtn.disabled=true;
+    }
+  }
+  function stopCamera(){
+    if(cameraStream){
+      cameraStream.getTracks().forEach(track=>track.stop());
+      cameraStream=null; cameraVideo.srcObject=null;
+    }
+    stopAutoScan();
+    captureBtn.disabled=true; stopCameraBtn.disabled=true;
+  }
+  
+  function startAutoScan(){
+    if(autoScanInterval) return;
+    autoScanInterval=setInterval(()=>{
+      if(cameraStream && cameraVideo.readyState >= 2){
+        tryAutoScan();
+      }
+    }, 1000); // Сканируем каждую секунду
+  }
+  
+  function stopAutoScan(){
+    if(autoScanInterval){
+      clearInterval(autoScanInterval);
+      autoScanInterval=null;
+    }
+  }
+  
+  async function tryAutoScan(){
+    if(!cameraStream) return;
+    
+    const ctx=cameraCanvas.getContext('2d');
+    cameraCanvas.width=cameraVideo.videoWidth;
+    cameraCanvas.height=cameraVideo.videoHeight;
+    ctx.drawImage(cameraVideo,0,0);
+    
+    // Отправляем на сервер для сканирования
+    cameraCanvas.toBlob(async (blob)=>{
+      const formData=new FormData();
+      formData.append('image',blob,'scan.png');
+      
+      try{
+        const response=await fetch('{{ url_for("scan.scan_api") }}',{
+          method:'POST',
+          body:formData
+        });
+        const data=await response.json();
+        
+        if(data && data.ok && data.text){
+          // Код найден!
+          stopAutoScan();
+          scanStatus.textContent='Код найден!';
+          scanStatus.style.background='rgba(34,197,94,0.8)';
+          
+          setTimeout(()=>{
+            const file=new File([blob],'camera_scan.png',{type:'image/png'});
+            hideCameraModal();
+            startScan(file);
+          }, 500);
+        } else {
+          scanStatus.textContent='Ищу код...';
+          scanStatus.style.background='rgba(0,0,0,0.7)';
+        }
+      }catch(err){
+        // Игнорируем ошибки автоматического сканирования
+      }
+    },'image/png',0.8);
+  }
+  function captureFromCamera(){
+    if(!cameraStream) return;
+    const ctx=cameraCanvas.getContext('2d');
+    cameraCanvas.width=cameraVideo.videoWidth; cameraCanvas.height=cameraVideo.videoHeight;
+    ctx.drawImage(cameraVideo,0,0);
+    cameraCanvas.toBlob(blob=>{
+      const file=new File([blob],'camera_capture.png',{type:'image/png'});
+      hideCameraModal();
+      startScan(file);
+    },'image/png',0.9);
+  }
+
+  function startScan(file){
+    resetUI(false);
+    clearAlert();
+    fileInfo.textContent=`Размер: ${formatSize(file.size)} (макс. 20 МБ)`;
+    if(file.size>20*1024*1024){ showAlert('error','Файл больше 20 МБ'); return; }
+    clientPreview(file); setScanning(true);
+    const formData=new FormData(); formData.append('image',file);
+    currentController=new AbortController();
+    currentTimeoutId=setTimeout(()=>{ if(currentController){ currentController.abort(); showAlert('error','Ошибка сканирования: слишком долго'); setScanning(false);} },15000);
+    fetch('{{ url_for("scan.scan_api") }}',{method:'POST',body:formData,signal:currentController.signal})
+      .then(r=>r.json().catch(()=>({ok:false,error:'Некорректный ответ сервера'})))
+      .then(data=>{
+        if(currentTimeoutId){ clearTimeout(currentTimeoutId); currentTimeoutId=null; }
+        currentController=null; setScanning(false);
+        if(!data||!data.ok){ showAlert('error',(data&&data.error)?data.error:'Ошибка сканирования'); resultCard.style.display='none'; return; }
+        codeTypeEl.textContent=`Тип кода: ${data.code_type||'—'}`; resultText.value=data.text||''; resultCard.style.display='block'; autoGrow(resultText);
+        if(data.open_url){ openFormBtn.href=data.open_url; openFormBtn.style.display='inline-block'; } else { openFormBtn.style.display='none'; }
+        if(data.form_type && TABULAR_FORMS.has(data.form_type)){ excelText.value=data.text||''; excelFormType.value=data.form_type; openExcelBtn.style.display='inline-block'; } else { openExcelBtn.style.display='none'; }
+      })
+      .catch(err=>{ if(currentTimeoutId){ clearTimeout(currentTimeoutId); currentTimeoutId=null; } currentController=null; setScanning(false); if(err&&err.name==='AbortError') return; showAlert('error','Ошибка сети при сканировании'); });
+  }
+
+  pickBtn.addEventListener('click',()=>fileInput.click());
+  fileInput.addEventListener('change',()=>{ const f=fileInput.files&&fileInput.files[0]; if(f) startScan(f); });
+  ['dragenter','dragover','dragleave','drop'].forEach(ev=>{ dropzone.addEventListener(ev,e=>{ e.preventDefault(); e.stopPropagation(); },false); });
+  dropzone.addEventListener('dragover',()=>dropzone.style.borderColor='#3b82f6');
+  ['dragleave','drop'].forEach(ev=>{ dropzone.addEventListener(ev,()=>dropzone.style.borderColor='#374151'); });
+  dropzone.addEventListener('drop',e=>{ const dt=e.dataTransfer; if(dt&&dt.files&&dt.files.length){ const f=dt.files[0]; fileInput.files=dt.files; startScan(f);} });
+  window.addEventListener('paste',(e)=>{ if(!e.clipboardData||!e.clipboardData.items) return; for(const item of e.clipboardData.items){ if(item.type.startsWith('image/')){ const blob=item.getAsFile(); if(blob){ const file=new File([blob],'clipboard.png',{type:blob.type||'image/png'}); startScan(file); break; } } } });
+  copyBtn.addEventListener('click',async ()=>{ try{ await navigator.clipboard.writeText(resultText.value||''); showAlert('success','Скопировано'); setTimeout(clearAlert,1500);}catch{ showAlert('error','Не удалось скопировать'); } });
+  clearBtn.addEventListener('click',()=>resetUI());
+  openExcelBtn.addEventListener('click',()=>excelForm.submit());
+  window.addEventListener('resize',()=>autoGrow(resultText));
+
+  // Обработчики камеры
+  cameraBtn.addEventListener('click',()=>{ showCameraModal(); startCamera(); });
+  closeCameraBtn.addEventListener('click',hideCameraModal);
+  cameraBackdrop.addEventListener('click',hideCameraModal);
+  captureBtn.addEventListener('click',captureFromCamera);
+  stopCameraBtn.addEventListener('click',hideCameraModal);
+  
+  // Очистка при закрытии страницы
+  window.addEventListener('beforeunload',()=>{ stopCamera(); });
+})();
+</script>
+{% endblock %}

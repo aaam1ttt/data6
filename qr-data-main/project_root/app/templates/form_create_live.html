@@ -1,0 +1,752 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card" style="max-width:980px;margin:0 auto;">
+  <h2 class="center">Создать код</h2>
+
+  <div id="alerts"></div>
+
+  <div class="two" style="margin-top:12px; align-items:end;">
+    <label>Тип кода
+      <select id="codeType">
+        <option value="QR" selected>QR</option>
+        <option value="DM">DataMatrix</option>
+        <option value="C128">Code 128</option>
+        <option value="PDF417">PDF417</option>
+        <option value="AZTEC">Aztec</option>
+      </select>
+    </label>
+    <label>Размер
+      <select id="sizePreset"></select>
+    </label>
+  </div>
+
+  <div id="limitInfo" class="muted" style="margin-top:6px;"></div>
+
+  <div id="previewWrap" class="card" style="margin-top:12px; position:relative; display:none; justify-content:center;">
+    <div style="width:100%; display:flex; justify-content:center;">
+      <img id="previewImg" alt="preview" style="max-width:100%; max-height:420px; object-fit:contain; border-radius:10px;"/>
+    </div>
+    <div id="spinOverlay" style="display:none; position:absolute; left:0; right:0; top:0; bottom:0; pointer-events:none; border-radius:10px; overflow:hidden;">
+      <div style="position:absolute; left:0; right:0; top:-60%; height:50%;
+                  background:linear-gradient(to bottom, rgba(59,130,246,0) 0%, rgba(59,130,246,.25) 50%, rgba(59,130,246,0) 100%);
+                  animation: scanMove 1.1s linear infinite;"></div>
+    </div>
+  </div>
+
+  <label style="margin-top:12px;">Текст
+    <textarea id="textInput" rows="5" class="autogrow"
+              style="width:100%; background:#0b1220; color:#e6e6e6; border:1px solid #374151; border-radius:8px; padding:10px; resize:none; overflow:hidden; white-space:pre-wrap; line-height:1.4;"></textarea>
+  </label>
+
+  <label id="humanTextLabel" style="margin-top:12px; display:none;">Текст под кодом (для Code 128 и PDF417)
+    <input id="humanTextInput" type="text" 
+           style="width:100%; background:#0b1220; color:#e6e6e6; border:1px solid #374151; border-radius:8px; padding:10px;"
+           placeholder="Введите текст, который будет отображаться под штрих-кодом">
+  </label>
+
+  <label style="display:flex;align-items:center;gap:6px; margin-top:6px;">
+    <input type="checkbox" id="allowEdit" style="width:auto;" checked> Разрешить редактирование
+  </label>
+
+  <div class="toolbar" style="display:flex; gap:8px; align-items:center; margin-top:10px; flex-wrap:wrap;">
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <label style="display:flex; align-items:center; gap:8px;">
+        <span class="muted">Формат</span>
+        <select id="formatSelect" class="select-btn">
+          <option value="png">PNG</option>
+          <option value="jpg">JPG</option>
+          <option value="pdf">PDF</option>
+        </select>
+      </label>
+      <button id="saveBtn" class="btn primary" type="button" disabled>Сохранить</button>
+      
+      <div class="dropdown" style="position:relative; display:inline-block;">
+        <button id="printBtn" class="btn" type="button" disabled>Печать ▼</button>
+        <div id="printDropdown" class="dropdown-content" style="display:none; position:absolute; top:100%; left:0; background:#1e293b; border:1px solid #374151; border-radius:8px; min-width:200px; z-index:1000; box-shadow:0 4px 6px rgba(0,0,0,0.1);">
+          <button id="printSingleBtn" class="dropdown-item" type="button" disabled>Печать</button>
+          <button id="multiSameBtn" class="dropdown-item" type="button" disabled>Печать несколько одинаковых</button>
+          <button id="queueAddBtn" class="dropdown-item" type="button" disabled>Добавить в очередь</button>
+          <button id="queuePrintBtn" class="dropdown-item" type="button" disabled>Печать несколько разных</button>
+          <button id="viewQueueBtn" class="dropdown-item" type="button" disabled>Посмотреть очередь</button>
+          <button id="queueClearBtn" class="dropdown-item danger" type="button" disabled>Очистить очередь</button>
+        </div>
+      </div>
+      <button id="clearBtn" class="btn danger" type="button">Очистить</button>
+    </div>
+    <div style="margin-left:auto;">
+      <button id="openFormsBtn" class="btn" type="button">Создать форму</button>
+    </div>
+  </div>
+
+  <div id="formsModal" class="card" style="display:none; margin-top:12px;">
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <a class="btn" href="{{ url_for('forms.form_torg12') }}">ТОРГ-12</a>
+      <a class="btn" href="{{ url_for('forms.form_message') }}">Состав конверта (Сообщение)</a>
+      <a class="btn" href="{{ url_for('forms.form_exploitation') }}">Эксплуатационная структура</a>
+      <a class="btn" href="{{ url_for('forms.form_transport') }}">Транспортная маркировка</a>
+      <a class="btn" href="{{ url_for('forms.form_custom') }}">Произвольная таблица</a>
+    </div>
+  </div>
+
+  <!-- Модальное окно очереди печати -->
+  <div id="queueModal" class="card" style="position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:1000; display:none; max-width:80vw; max-height:80vh; background:#1e293b; border:2px solid #374151; overflow-y:auto;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <h3 style="margin:0;">Очередь печати</h3>
+      <button id="closeQueueBtn" class="btn danger" style="padding:4px 8px;">✕</button>
+    </div>
+    <div id="queueList" style="max-height:400px; overflow-y:auto;">
+      <!-- Элементы очереди будут добавлены здесь -->
+    </div>
+    <div style="display:flex; gap:8px; justify-content:center; margin-top:12px;">
+      <button id="printAllQueueBtn" class="btn primary" type="button">Печать все</button>
+      <button id="clearAllQueueBtn" class="btn danger" type="button">Очистить все</button>
+    </div>
+  </div>
+  <div id="queueBackdrop" style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:999; display:none;"></div>
+
+  <div class="card" style="margin-top:16px;">
+    <h3 style="margin-bottom:8px;">Импорт из Excel</h3>
+    <div class="two">
+      <label>Файл Excel
+        <input id="impFile" type="file" accept=".xlsx,.xls">
+      </label>
+      <div style="display:flex;align-items:end;">
+        <button id="importBtn" class="btn" type="button" style="height:40px;">Импортировать</button>
+      </div>
+    </div>
+
+    <div id="tableWrap" style="overflow:auto; margin-top:10px; display:none;">
+      <div style="display:flex; gap:8px; margin-bottom:8px;">
+        <button id="addRowBtn" class="btn">+ Строка</button>
+        <button id="addColBtn" class="btn">+ Колонка</button>
+        <button id="applyBtn" class="btn ok" type="button" style="display:none;">Применить в код</button>
+      </div>
+      <table id="previewTable" style="width:100%; border-collapse:collapse;">
+        <thead id="tblHead"></thead>
+        <tbody id="tblBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <form id="saveForm" method="post" action="{{ url_for('forms.api_save_code') }}" target="_blank" style="display:none;">
+    <input type="hidden" name="text" id="sf_text">
+    <input type="hidden" name="code_type" id="sf_code_type">
+    <input type="hidden" name="size" id="sf_size">
+    <input type="hidden" name="fmt" id="sf_fmt">
+  </form>
+
+  <style>
+    @keyframes scanMove { 0%{top:-60%;} 100%{top:110%;} }
+    .autogrow { resize:none; overflow:hidden; white-space:pre-wrap; line-height:1.4; }
+    #previewTable th, #previewTable td { padding:8px; border-bottom:1px solid #374151; }
+    #previewTable th { color:#cbd5e1; text-align:left; }
+    #previewTable td[contenteditable="true"] { background:#0f172a; outline:none; }
+    .select-btn { height:40px; padding:0 12px; border-radius:10px; background:#334155; color:#fff; border:none; }
+    
+    .dropdown-item {
+      display:block; width:100%; padding:8px 12px; background:none; border:none; color:#e6e6e6; text-align:left; cursor:pointer; border-bottom:1px solid #374151;
+    }
+    .dropdown-item:hover { background:#374151; }
+    .dropdown-item:last-child { border-bottom:none; }
+    .dropdown-item.danger { color:#ef4444; }
+    .dropdown-item.danger:hover { background:#7f1d1d; }
+  </style>
+</div>
+
+<script>
+(function(){
+  const alerts     = document.getElementById('alerts');
+
+  const codeType   = document.getElementById('codeType');
+  const sizePreset = document.getElementById('sizePreset');
+
+  const textInput  = document.getElementById('textInput');
+  const humanTextLabel = document.getElementById('humanTextLabel');
+  const humanTextInput = document.getElementById('humanTextInput');
+  const allowEdit  = document.getElementById('allowEdit');
+
+  const previewWrap= document.getElementById('previewWrap');
+  const previewImg = document.getElementById('previewImg');
+  const spinOverlay= document.getElementById('spinOverlay');
+
+  const limitInfo  = document.getElementById('limitInfo');
+
+  const formatSel  = document.getElementById('formatSelect');
+  const saveBtn    = document.getElementById('saveBtn');
+  const printBtn   = document.getElementById('printBtn');
+  const printDropdown = document.getElementById('printDropdown');
+  const printSingleBtn = document.getElementById('printSingleBtn');
+  const multiSameBtn = document.getElementById('multiSameBtn');
+  const queueAddBtn  = document.getElementById('queueAddBtn');
+  const queuePrintBtn= document.getElementById('queuePrintBtn');
+  const viewQueueBtn = document.getElementById('viewQueueBtn');
+  const queueClearBtn= document.getElementById('queueClearBtn');
+  const clearBtn   = document.getElementById('clearBtn');
+  
+  // Элементы модального окна очереди
+  const queueModal = document.getElementById('queueModal');
+  const queueBackdrop = document.getElementById('queueBackdrop');
+  const closeQueueBtn = document.getElementById('closeQueueBtn');
+  const queueList = document.getElementById('queueList');
+  const printAllQueueBtn = document.getElementById('printAllQueueBtn');
+  const clearAllQueueBtn = document.getElementById('clearAllQueueBtn');
+
+  const openFormsBtn = document.getElementById('openFormsBtn');
+  const formsModal   = document.getElementById('formsModal');
+
+  const impFile   = document.getElementById('impFile');
+  const importBtn = document.getElementById('importBtn');
+
+  const tableWrap = document.getElementById('tableWrap');
+  const tblHead   = document.getElementById('tblHead');
+  const tblBody   = document.getElementById('tblBody');
+  const addRowBtn = document.getElementById('addRowBtn');
+  const addColBtn = document.getElementById('addColBtn');
+  const applyBtn  = document.getElementById('applyBtn');
+
+  const saveForm  = document.getElementById('saveForm');
+  const sf_text   = document.getElementById('sf_text');
+  const sf_code   = document.getElementById('sf_code_type');
+  const sf_size   = document.getElementById('sf_size');
+  const sf_fmt    = document.getElementById('sf_fmt');
+
+  let controller = null;
+  let debounceId = null;
+  let lastDataUrl = null;
+  let currentFormType = null;
+  let queue = [];
+
+  const PRESETS = {
+    QR:     [{px:300,label:'300 px', mm:20},{px:420,label:'420 px', mm:28},{px:600,label:'600 px', mm:40}],
+    DM:     [{px:280,label:'280 px', mm:16},{px:360,label:'360 px', mm:22},{px:520,label:'520 px', mm:32}],
+    C128:   [{px:200,label:'200 px (высота)', mm:15},{px:280,label:'280 px', mm:20},{px:360,label:'360 px', mm:26}],
+    PDF417: [{px:200,label:'200 px (высота)', mm:15},{px:280,label:'280 px', mm:20},{px:360,label:'360 px', mm:26}],
+    AZTEC:  [{px:300,label:'300 px', mm:20},{px:420,label:'420 px', mm:28},{px:600,label:'600 px', mm:40}]
+  };
+  const LIMITS = { QR: 2953, DM: 1556, C128: 80, PDF417: 1800, AZTEC: 1900 };
+
+  function utf8len(s){ return (new TextEncoder()).encode(s||'').length; }
+
+  function showAlert(type, msg){
+    const cls = type === 'error' ? 'error' : (type === 'success' ? 'success' : '');
+    alerts.innerHTML = `<div class="alert ${cls}">${msg}</div>`;
+  }
+  function clearAlert(){ alerts.innerHTML = ''; }
+
+  function autoGrow(el){
+    const min = 5 * 20;
+    el.style.height = 'auto';
+    el.style.height = Math.max(min, el.scrollHeight + 2) + 'px';
+  }
+
+  function setBusy(on){
+    spinOverlay.style.display = on ? 'block' : 'none';
+    if (on) previewWrap.style.display = 'flex';
+  }
+
+  function refreshButtons(){
+    const has = !!lastDataUrl;
+    saveBtn.disabled = !has;
+    printBtn.disabled = !has;
+    printSingleBtn.disabled = !has;
+    multiSameBtn.disabled = !has;
+    queueAddBtn.disabled = !has;
+    queuePrintBtn.disabled = queue.length === 0;
+    viewQueueBtn.disabled = queue.length === 0;
+    queueClearBtn.disabled = queue.length === 0;
+    printAllQueueBtn.disabled = queue.length === 0;
+    clearAllQueueBtn.disabled = queue.length === 0;
+  }
+
+  function renderPreview(dataUrl){
+    lastDataUrl = dataUrl;
+    previewImg.src = dataUrl;
+    previewWrap.style.display = 'flex';
+    refreshButtons();
+  }
+
+  function fillSizePresets(){
+    const t = codeType.value;
+    sizePreset.innerHTML = '';
+    (PRESETS[t] || PRESETS.QR).forEach((p, i) => {
+      const opt = document.createElement('option');
+      opt.value = p.px; opt.textContent = p.label;
+      if (i === 0) opt.selected = true;
+      sizePreset.appendChild(opt);
+    });
+  }
+
+  function toggleHumanTextField(){
+    const t = codeType.value;
+    const showField = t === 'C128' || t === 'PDF417';
+    humanTextLabel.style.display = showField ? 'block' : 'none';
+  }
+
+  function updateLimitInfo(){
+    const t = codeType.value;
+    const maxBytes = LIMITS[t] || 0;
+    const used = utf8len(textInput.value.trim());
+    const remainBytes = Math.max(0, maxBytes - used);
+    let avg = used ? (used / (textInput.value.length || 1)) : 1;
+    if (!isFinite(avg) || avg <= 0) avg = 1;
+    const remainChars = Math.floor(remainBytes / avg);
+    limitInfo.textContent = `Осталось ≈ ${remainChars} символов`;
+    const over = used > maxBytes;
+    limitInfo.style.color = over ? '#ffb4b4' : '';
+    return !over;
+  }
+
+  function clearAll(){
+    if (controller){ controller.abort(); controller = null; }
+    if (debounceId){ clearTimeout(debounceId); debounceId=null; }
+    clearAlert();
+    textInput.value = '';
+    autoGrow(textInput);
+    previewImg.src = '';
+    lastDataUrl = null;
+    previewWrap.style.display = 'none';
+    spinOverlay.style.display = 'none';
+    currentFormType = null;
+    tableWrap.style.display = 'none';
+    tblHead.innerHTML = ''; tblBody.innerHTML = '';
+    applyBtn.style.display = 'none';
+    updateLimitInfo();
+    refreshButtons();
+  }
+
+  function triggerGenerate(){
+    const text = (textInput.value || '').trim();
+    const size = parseInt(sizePreset.value || '300');
+    const humanText = (humanTextInput.value || '').trim();
+    if (!text){
+      lastDataUrl = null;
+      previewWrap.style.display = 'none';
+      refreshButtons();
+      return;
+    }
+    if (!updateLimitInfo()){
+      showAlert('error', 'Превышен лимит для выбранного типа кода');
+      return;
+    }
+    if (controller){ controller.abort(); controller = null; }
+    controller = new AbortController();
+    setBusy(true);
+
+    fetch('{{ url_for("forms.api_generate_code") }}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, code_type: codeType.value, size, human_text: humanText }),
+      signal: controller.signal
+    })
+    .then(r => r.json().catch(() => ({ ok:false, error:'Некорректный ответ сервера' })))
+    .then(data => {
+      controller = null;
+      setBusy(false);
+      if (!data || !data.ok){ showAlert('error', data?.error || 'Ошибка генерации'); return; }
+      clearAlert();
+      renderPreview(data.data_url);
+      previewTableFromText(text);
+    })
+    .catch(err => {
+      controller = null; setBusy(false);
+      if (err && err.name === 'AbortError') return;
+      showAlert('error','Сеть недоступна');
+    });
+  }
+  function debouncedGenerate(){
+    if (debounceId){ clearTimeout(debounceId); debounceId = null; }
+    debounceId = setTimeout(triggerGenerate, 320);
+  }
+
+  function previewTableFromText(text){
+    fetch('{{ url_for("forms.api_preview_table") }}', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json' },
+      body: JSON.stringify({ text })
+    })
+    .then(r => r.json())
+    .then(data => {
+      currentFormType = data.form_type || null;
+      if (!data.ok || !currentFormType){ tableWrap.style.display='none'; return; }
+
+      tblHead.innerHTML = '';
+      const trh = document.createElement('tr');
+      for (const h of data.headers){ const th = document.createElement('th'); th.textContent = h; trh.appendChild(th); }
+      tblHead.appendChild(trh);
+
+      tblBody.innerHTML = '';
+      for (const row of data.rows){
+        const tr = document.createElement('tr');
+        for (const cell of row){
+          const td = document.createElement('td');
+          td.textContent = cell || '';
+          td.contentEditable = allowEdit.checked ? "true" : "false";
+          tr.appendChild(td);
+        }
+        tblBody.appendChild(tr);
+      }
+      tableWrap.style.display = 'block';
+      applyBtn.style.display = allowEdit.checked ? 'inline-block' : 'none';
+    })
+    .catch(()=>{ tableWrap.style.display='none'; });
+  }
+
+  function encodeTableBack(){
+    if (!currentFormType) return;
+    const rows = [];
+    for (const tr of tblBody.querySelectorAll('tr')){
+      const row = [];
+      for (const td of tr.querySelectorAll('td')) row.push(td.textContent || '');
+      rows.push(row);
+    }
+    fetch('{{ url_for("forms.api_encode_table") }}', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json' },
+      body: JSON.stringify({ form_type: currentFormType, rows })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (!data.ok){ showAlert('error', data.error || 'Ошибка кодирования'); return; }
+      textInput.value = data.text || '';
+      autoGrow(textInput);
+      debouncedGenerate();
+    })
+    .catch(()=> showAlert('error','Ошибка сети при кодировании'));
+  }
+
+  function addRow(){
+    const cols = tblHead.querySelectorAll('th').length || 1;
+    const tr = document.createElement('tr');
+    for (let i=0;i<cols;i++){
+      const td = document.createElement('td');
+      td.textContent = '';
+      td.contentEditable = allowEdit.checked ? "true" : "false";
+      tr.appendChild(td);
+    }
+    tblBody.appendChild(tr);
+    tableWrap.style.display = 'block';
+  }
+  function addCol(){
+    const th = document.createElement('th'); th.textContent = 'Колонка';
+    if (!tblHead.firstChild){ const trh = document.createElement('tr'); trh.appendChild(th); tblHead.appendChild(trh); }
+    else { tblHead.firstChild.appendChild(th); }
+    for (const tr of tblBody.querySelectorAll('tr')){
+      const td = document.createElement('td'); td.textContent = ''; td.contentEditable = allowEdit.checked ? "true" : "false";
+      tr.appendChild(td);
+    }
+    tableWrap.style.display = 'block';
+  }
+
+  function selectedPresetMM(){
+    const t = codeType.value;
+    const px = parseInt(sizePreset.value || '300');
+    const arr = PRESETS[t] || PRESETS.QR;
+    const item = arr.find(x => x.px == px) || arr[0];
+    return item.mm;
+  }
+
+  function openPrintWindowSingle(dataUrl, mm){
+    const html = `
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Печать кода</title>
+        <style>
+          @page { size: A4; margin: 5mm; }
+          html,body { margin:0; padding:0; }
+          .wrap { width:210mm; height:297mm; position:relative; }
+          .code { position:absolute; left:0; top:0; width:${mm}mm; height:${mm}mm; image-rendering: pixelated; }
+        </style>
+      </head>
+      <body>
+        <div class="wrap">
+          <img class="code" src="${dataUrl}">
+        </div>
+        <script>window.onload = () => { window.print(); setTimeout(()=>window.close(), 300); }<\/script>
+      </body>
+      </html>`;
+    const w = window.open('', '_blank');
+    if (!w) return;
+    w.document.write(html);
+    w.document.close();
+  }
+
+  function planGridSame(mm){
+    const pageW = 210, pageH = 297, margin = 5, gap = 4;
+    const cw = mm, ch = mm;
+    const cols = Math.max(1, Math.floor((pageW - 2*margin + gap) / (cw + gap)));
+    const rows = Math.max(1, Math.floor((pageH - 2*margin + gap) / (ch + gap)));
+    return {cols, rows, gap, margin, cw, ch};
+  }
+
+  function openPrintWindowSame(dataUrl, mm){
+    const plan = planGridSame(mm);
+    const cells = plan.cols * plan.rows;
+    let items = '';
+    for (let i=0;i<cells;i++){
+      items += `<img class="cell" src="${dataUrl}">`;
+    }
+    const html = `
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Печать несколько</title>
+        <style>
+          @page { size: A4; margin: 5mm; }
+          html,body { margin:0; padding:0; }
+          .sheet { width:210mm; min-height:297mm; padding:${plan.margin}mm; box-sizing:border-box; display:flex; flex-wrap:wrap; gap:${plan.gap}mm; align-content:flex-start; }
+          .cell { width:${plan.cw}mm; height:${plan.ch}mm; image-rendering: pixelated; }
+        </style>
+      </head>
+      <body>
+        <div class="sheet">${items}</div>
+        <script>window.onload = () => { window.print(); setTimeout(()=>window.close(), 300); }<\/script>
+      </body>
+      </html>`;
+    const w = window.open('', '_blank');
+    if (!w) return;
+    w.document.write(html);
+    w.document.close();
+  }
+
+  function openPrintWindowQueue(queue){
+    if (!queue.length) return;
+    const pageW = 210, pageH = 297, margin = 5, gap = 4;
+    let x = margin, y = margin, rowH = 0;
+    let items = '';
+    function add(imgUrl, mm){
+      const w = mm, h = mm;
+      if (x + w > pageW - margin + 0.01){
+        x = margin;
+        y += rowH + gap;
+        rowH = 0;
+      }
+      if (y + h > pageH - margin + 0.01) return false;
+      items += `<img src="${imgUrl}" style="position:absolute; left:${x}mm; top:${y}mm; width:${w}mm; height:${h}mm; image-rendering: pixelated;">`;
+      x += w + gap;
+      rowH = Math.max(rowH, h);
+      return true;
+    }
+    let placed = 0;
+    for (const it of queue){
+      if (add(it.url, it.mm)) placed++;
+    }
+    const html = `
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Печать несколько разных</title>
+        <style>
+          @page { size: A4; margin: 5mm; }
+          html,body { margin:0; padding:0; }
+          .sheet { width:210mm; height:297mm; position:relative; }
+        </style>
+      </head>
+      <body>
+        <div class="sheet">${items}</div>
+        <script>window.onload = () => { window.print(); setTimeout(()=>window.close(), 300); }<\/script>
+      </body>
+      </html>`;
+    const w = window.open('', '_blank');
+    if (!w) return;
+    w.document.write(html);
+    w.document.close();
+    if (placed < queue.length){
+      showAlert('error', 'Не все коды поместились на один лист A4');
+    }
+  }
+
+  // Функции для выпадающего меню
+  function togglePrintDropdown(){
+    printDropdown.style.display = printDropdown.style.display === 'none' ? 'block' : 'none';
+  }
+
+  function hidePrintDropdown(){
+    printDropdown.style.display = 'none';
+  }
+
+  // Функции для очереди
+  function showQueueModal(){
+    updateQueueList();
+    queueModal.style.display = 'block';
+    queueBackdrop.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function hideQueueModal(){
+    queueModal.style.display = 'none';
+    queueBackdrop.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+
+  function updateQueueList(){
+    queueList.innerHTML = '';
+    if (queue.length === 0) {
+      queueList.innerHTML = '<p style="text-align:center; color:#9ca3af; padding:20px;">Очередь пуста</p>';
+      return;
+    }
+
+    queue.forEach((item, index) => {
+      const div = document.createElement('div');
+      div.style.cssText = 'display:flex; align-items:center; gap:12px; padding:8px; border-bottom:1px solid #374151;';
+      div.innerHTML = `
+        <img src="${item.url}" style="width:40px; height:40px; object-fit:contain; border:1px solid #374151;">
+        <div style="flex:1;">
+          <div style="font-weight:600;">${item.type}</div>
+          <div style="font-size:12px; color:#9ca3af;">${item.mm}mm</div>
+        </div>
+        <button class="btn danger" onclick="removeFromQueue(${index})" style="padding:4px 8px;">Удалить</button>
+      `;
+      queueList.appendChild(div);
+    });
+  }
+
+  function removeFromQueue(index){
+    queue.splice(index, 1);
+    updateQueueList();
+    refreshButtons();
+  }
+
+  codeType.addEventListener('change', () => { fillSizePresets(); toggleHumanTextField(); updateLimitInfo(); debouncedGenerate(); });
+  sizePreset.addEventListener('change', () => { updateLimitInfo(); debouncedGenerate(); });
+
+  textInput.addEventListener('input', () => { autoGrow(textInput); updateLimitInfo(); debouncedGenerate(); });
+  textInput.addEventListener('paste', () => { setTimeout(() => { autoGrow(textInput); updateLimitInfo(); debouncedGenerate(); }, 0); });
+
+  allowEdit.addEventListener('change', () => {
+    const editable = allowEdit.checked;
+    for (const td of document.querySelectorAll('#tblBody td')){
+      td.contentEditable = editable ? "true" : "false";
+    }
+    applyBtn.style.display = editable ? 'inline-block' : 'none';
+  });
+
+  addRowBtn.addEventListener('click', (e)=>{ e.preventDefault(); addRow(); });
+  addColBtn.addEventListener('click', (e)=>{ e.preventDefault(); addCol(); });
+  applyBtn.addEventListener('click', encodeTableBack);
+
+  importBtn.addEventListener('click', () => {
+    const f = impFile.files && impFile.files[0];
+    if (!f){ showAlert('error','Выбери файл Excel'); return; }
+    const fd = new FormData();
+    fd.append('excel', f);
+    fetch('{{ url_for("forms.api_import_excel") }}', { method:'POST', body:fd })
+      .then(r => r.json())
+      .then(data => {
+        if (!data.ok){ showAlert('error', data.error || 'Ошибка импорта'); return; }
+        clearAlert();
+        textInput.value = data.text || '';
+        autoGrow(textInput);
+        updateLimitInfo();
+        debouncedGenerate();
+
+        currentFormType = data.form_type || null;
+        tblHead.innerHTML = '';
+        if (data.headers && data.headers.length){
+          const trh = document.createElement('tr');
+          for (const h of data.headers){ const th = document.createElement('th'); th.textContent = h; trh.appendChild(th); }
+          tblHead.appendChild(trh);
+        }
+        tblBody.innerHTML = '';
+        for (const row of (data.rows || [])){
+          const tr = document.createElement('tr');
+          for (const cell of row){
+            const td = document.createElement('td');
+            td.textContent = cell || '';
+            td.contentEditable = allowEdit.checked ? "true" : "false";
+            tr.appendChild(td);
+          }
+          tblBody.appendChild(tr);
+        }
+        tableWrap.style.display = 'block';
+        applyBtn.style.display = allowEdit.checked ? 'inline-block' : 'none';
+      })
+      .catch(()=> showAlert('error','Ошибка сети при импорте'));
+  });
+
+  clearBtn.addEventListener('click', clearAll);
+
+  document.getElementById('saveBtn').addEventListener('click', () => {
+    const text = (textInput.value || '').trim();
+    if (!text || !lastDataUrl) return;
+    sf_text.value = text;
+    sf_code.value = codeType.value;
+    sf_size.value = parseInt(sizePreset.value || '300');
+    sf_fmt.value  = formatSel.value;
+    saveForm.submit();
+  });
+
+  // Обработчики выпадающего меню печати
+  printBtn.addEventListener('click', togglePrintDropdown);
+  
+  // Закрытие выпадающего меню при клике вне его
+  document.addEventListener('click', (e) => {
+    if (!printBtn.contains(e.target) && !printDropdown.contains(e.target)) {
+      hidePrintDropdown();
+    }
+  });
+
+  printSingleBtn.addEventListener('click', () => {
+    if (!lastDataUrl) return;
+    hidePrintDropdown();
+    openPrintWindowSingle(lastDataUrl, selectedPresetMM());
+  });
+
+  multiSameBtn.addEventListener('click', () => {
+    if (!lastDataUrl) return;
+    hidePrintDropdown();
+    openPrintWindowSame(lastDataUrl, selectedPresetMM());
+  });
+
+  queueAddBtn.addEventListener('click', () => {
+    if (!lastDataUrl) return;
+    hidePrintDropdown();
+    queue.push({ url: lastDataUrl, mm: selectedPresetMM(), type: codeType.value });
+    showAlert('success', `Добавлено в очередь (${queue.length})`);
+    refreshButtons();
+    setTimeout(clearAlert, 1200);
+  });
+
+  queuePrintBtn.addEventListener('click', () => {
+    if (!queue.length) return;
+    hidePrintDropdown();
+    openPrintWindowQueue(queue);
+  });
+
+  viewQueueBtn.addEventListener('click', () => {
+    hidePrintDropdown();
+    showQueueModal();
+  });
+
+  queueClearBtn.addEventListener('click', () => {
+    hidePrintDropdown();
+    queue = [];
+    refreshButtons();
+  });
+
+  // Обработчики модального окна очереди
+  closeQueueBtn.addEventListener('click', hideQueueModal);
+  queueBackdrop.addEventListener('click', hideQueueModal);
+  
+  printAllQueueBtn.addEventListener('click', () => {
+    hideQueueModal();
+    openPrintWindowQueue(queue);
+  });
+
+  clearAllQueueBtn.addEventListener('click', () => {
+    queue = [];
+    hideQueueModal();
+    refreshButtons();
+  });
+
+  openFormsBtn.addEventListener('click', () => {
+    formsModal.style.display = (formsModal.style.display === 'none' || formsModal.style.display === '') ? 'block' : 'none';
+  });
+
+  fillSizePresets();
+  toggleHumanTextField();
+  updateLimitInfo();
+  autoGrow(textInput);
+})();
+</script>
+{% endblock %}

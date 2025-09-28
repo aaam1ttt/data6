@@ -1,0 +1,20 @@
+<script>
+(function(){
+  const PRESETS={ QR:[{v:300,l:'300 px (стандарт)'},{v:420,l:'420 px'},{v:600,l:'600 px'}],
+                  DM:[{v:280,l:'280 px (стандарт)'},{v:360,l:'360 px'},{v:520,l:'520 px'}] };
+  function fill(select, type, current){
+    select.innerHTML='';
+    (PRESETS[type]||PRESETS.QR).forEach((p,i)=>{
+      const opt=document.createElement('option'); opt.value=p.v; opt.textContent=p.l;
+      if (current ? String(p.v)==String(current) : i===0) opt.selected=true;
+      select.appendChild(opt);
+    });
+  }
+  window._initSizePreset = function(typeSelId, sizeSelId, currentSize){
+    const t=document.getElementById(typeSelId);
+    const s=document.getElementById(sizeSelId);
+    fill(s, t.value, currentSize);
+    t.addEventListener('change', ()=>fill(s, t.value));
+  }
+})();
+</script>

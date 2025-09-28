@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card" style="max-width:1100px;margin:0 auto;">
+  <h2 class="center">Пользователи</h2>
+
+  <div class="two" style="margin-top:16px;">
+    <!-- Список -->
+    <div>
+      <h3>Список</h3>
+      <div style="overflow:auto; max-height: 60vh;">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Логин</th>
+              <th>Админ</th>
+              <th>Создан</th>
+              <th>Действия</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in users %}
+            <tr>
+              <td>{{ u.id }}</td>
+              <td>{{ u.username }}</td>
+              <td>{{ "да" if u.is_admin else "нет" }}</td>
+              <td>{{ u.created_at }}</td>
+              <td class="row-actions">
+                <!-- Сброс пароля через prompt -->
+                <form id="reset-form-{{ u.id }}" method="post" action="{{ url_for('admin.users_reset_password', user_id=u.id) }}" style="display:inline;">
+                  <input type="hidden" name="new_password" id="pwd-{{ u.id }}">
+                  <button type="button" class="btn" onclick="resetPwd({{ u.id }}, '{{ u.username }}')">Сбросить пароль</button>
+                </form>
+                <!-- Удалить -->
+                <form method="post" action="{{ url_for('admin.users_delete', user_id=u.id) }}" style="display:inline;" onsubmit="return confirm('Удалить пользователя {{ u.username }}?');">
+                  <button class="btn danger" type="submit">Удалить</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p class="hint">Нельзя удалить последнего администратора.</p>
+    </div>
+
+    <!-- Создание -->
+    <div>
+      <h3>Создать пользователя</h3>
+      <form method="post" action="{{ url_for('admin.users_create') }}" class="grid" style="max-width:520px;margin-top:12px;">
+        <label>Логин
+          <input name="username" required>
+        </label>
+        <label>Пароль
+          <input name="password" type="password" required>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;">
+          <input type="checkbox" name="is_admin" style="width:auto;"> Администратор
+        </label>
+        <button class="btn primary" type="submit">Создать</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function resetPwd(userId, username){
+  const pwd = prompt(`Новый пароль для "${username}":`);
+  if (pwd === null) return; // отмена
+  const trimmed = (pwd || '').trim();
+  if (!trimmed){
+    alert('Пароль пустой');
+    return;
+  }
+  const input = document.getElementById('pwd-' + userId);
+  input.value = trimmed;
+  document.getElementById('reset-form-' + userId).submit();
+}
+</script>
+{% endblock %}
