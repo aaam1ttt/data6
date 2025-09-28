@@ -34,28 +34,58 @@ def _add_text_below_barcode(img: Image.Image, text: str) -> Image.Image:
     try:
         from PIL import ImageDraw, ImageFont
         
-        text_height = 40
+        # Calculate proportional font size based on barcode dimensions
+        # Use the smaller dimension (width or height) to ensure text fits properly
+        base_dimension = min(img.width, img.height)
+        
+        # Scale font size proportionally - aim for about 1/15th of the base dimension
+        # but with minimum and maximum bounds for readability
+        font_size = max(16, min(72, int(base_dimension / 15)))
+        
+        # Calculate text area height proportionally to font size
+        text_height = int(font_size * 1.8)  # Give some padding above and below text
+        
         new_img = Image.new('RGB', (img.width, img.height + text_height), 'white')
         new_img.paste(img, (0, 0))
         
         draw = ImageDraw.Draw(new_img)
         
-        font_size = 24
-        try:
-            font = ImageFont.truetype("arial.ttf", font_size)
-        except:
-            try:
-                font = ImageFont.truetype("/System/Library/Fonts/Arial.ttf", font_size)
-            except:
-                try:
-                    font = ImageFont.truetype("C:/Windows/Fonts/arial.ttf", font_size)
-                except:
-                    font = ImageFont.load_default()
+        # Try to load a scalable font with the calculated size
+        font = None
+        font_paths = [
+            "arial.ttf",
+            "/System/Library/Fonts/Arial.ttf", 
+            "C:/Windows/Fonts/arial.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+            "/System/Library/Fonts/Helvetica.ttc"
+        ]
         
+        for font_path in font_paths:
+            try:
+                font = ImageFont.truetype(font_path, font_size)
+                break
+            except:
+                continue
+        
+        # Fallback to default font if no TrueType font found
+        if font is None:
+            try:
+                font = ImageFont.load_default()
+                # Try to get a better default font size for built-in font
+                if hasattr(font, 'size'):
+                    # For older PIL versions, try to scale the default font
+                    font = ImageFont.load_default()
+            except:
+                font = ImageFont.load_default()
+        
+        # Get text dimensions for centering
         bbox = draw.textbbox((0, 0), text, font=font)
         text_width = bbox[2] - bbox[0]
+        text_actual_height = bbox[3] - bbox[1]
+        
+        # Center horizontally, position with some padding from barcode
         x = (img.width - text_width) // 2
-        y = img.height + 8
+        y = img.height + (text_height - text_actual_height) // 2
         
         draw.text((x, y), text, fill='black', font=font)
         
