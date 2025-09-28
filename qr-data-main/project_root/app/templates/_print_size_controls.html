@@ -45,34 +45,37 @@
 
 <script>
 (function(){
-  const PRINT_PRESETS = {
+  const GOST_PRESETS = {
     QR: [
-      {px: 472, label: '15×15 мм', mm: 15},
-      {px: 630, label: '20×20 мм', mm: 20},
-      {px: 787, label: '25×25 мм', mm: 25},
-      {px: 945, label: '30×30 мм', mm: 30}
+      {gost: 'QR-S1', px: 177, label: 'QR-S1: Малый (15×15 мм)', mm: 15, layout: '9×12 на А4'},
+      {gost: 'QR-S2', px: 236, label: 'QR-S2: Стандартный ТОРГ-12 (20×20 мм)', mm: 20, layout: '7×9 на А4'},
+      {gost: 'QR-S3', px: 295, label: 'QR-S3: Увеличенный (25×25 мм)', mm: 25, layout: '6×7 на А4'},
+      {gost: 'QR-S4', px: 354, label: 'QR-S4: Печатный (30×30 мм)', mm: 30, layout: '5×6 на А4'}
     ],
     DM: [
-      {px: 378, label: '12×12 мм', mm: 12},
-      {px: 472, label: '15×15 мм', mm: 15},
-      {px: 630, label: '20×20 мм', mm: 20},
-      {px: 787, label: '25×25 мм', mm: 25}
+      {gost: 'DM-S1', px: 94, label: 'DM-S1: Микро (8×8 мм)', mm: 8, layout: '20×25 на А4'},
+      {gost: 'DM-S2', px: 142, label: 'DM-S2: Малый (12×12 мм)', mm: 12, layout: '13×17 на А4'},
+      {gost: 'DM-S3', px: 189, label: 'DM-S3: Средний (16×16 мм)', mm: 16, layout: '10×12 на А4'},
+      {gost: 'DM-S4', px: 236, label: 'DM-S4: Большой (20×20 мм)', mm: 20, layout: '7×9 на А4'}
     ],
     C128: [
-      {px: 378, label: '12 мм высота', mm: 12},
-      {px: 472, label: '15 мм высота', mm: 15},
-      {px: 630, label: '20 мм высота', mm: 20}
+      {gost: 'C128-H1', px: 94, label: 'C128-H1: Низкий (30×8 мм)', mm: 8, layout: '~70 на А4'},
+      {gost: 'C128-H2', px: 142, label: 'C128-H2: Средний (40×12 мм)', mm: 12, layout: '~55 на А4'},
+      {gost: 'C128-H3', px: 177, label: 'C128-H3: Высокий (50×15 мм)', mm: 15, layout: '~40 на А4'},
+      {gost: 'C128-H4', px: 236, label: 'C128-H4: Печатный (60×20 мм)', mm: 20, layout: '~30 на А4'}
     ],
     PDF417: [
-      {px: 378, label: '12 мм высота', mm: 12},
-      {px: 472, label: '15 мм высота', mm: 15},
-      {px: 630, label: '20 мм высота', mm: 20}
+      {gost: 'PDF417-S1', px: 118, label: 'PDF417-S1: Компактный (25×10 мм)', mm: 10, layout: '~60 на А4'},
+      {gost: 'PDF417-S2', px: 177, label: 'PDF417-S2: Стандартный (35×15 мм)', mm: 15, layout: '~40 на А4'},
+      {gost: 'PDF417-S3', px: 236, label: 'PDF417-S3: Расширенный (45×20 мм)', mm: 20, layout: '~25 на А4'},
+      {gost: 'PDF417-S4', px: 295, label: 'PDF417-S4: Полный (55×25 мм)', mm: 25, layout: '~20 на А4'}
     ],
     AZTEC: [
-      {px: 472, label: '15×15 мм', mm: 15},
-      {px: 630, label: '20×20 мм', mm: 20},
-      {px: 787, label: '25×25 мм', mm: 25},
-      {px: 945, label: '30×30 мм', mm: 30}
+      {gost: 'AZ-S1', px: 177, label: 'AZ-S1: Малый (15×15 мм)', mm: 15, layout: '9×12 на А4'},
+      {gost: 'AZ-S2', px: 236, label: 'AZ-S2: Средний (20×20 мм)', mm: 20, layout: '7×9 на А4'},
+      {gost: 'AZ-S3', px: 295, label: 'AZ-S3: Большой (25×25 мм)', mm: 25, layout: '6×7 на А4'},
+      {gost: 'AZ-S4', px: 354, label: 'AZ-S4: Печатный (30×30 мм)', mm: 30, layout: '5×6 на А4'}
+    ]
     ]
   };
 
@@ -89,15 +92,18 @@
 
     if (!printBtn || !printDropdown || !printSizeSelect || !printExecuteBtn) return;
 
-    // Populate size options
+    // Populate GOST size options
     function fillPrintSizes(type, current) {
       printSizeSelect.innerHTML = '';
-      (PRINT_PRESETS[type] || PRINT_PRESETS.QR).forEach((p, i) => {
+      (GOST_PRESETS[type] || GOST_PRESETS.QR).forEach((p, i) => {
         const opt = document.createElement('option');
         opt.value = p.px;
         opt.textContent = p.label;
         opt.dataset.mm = p.mm;
-        if (current ? String(p.px) == String(current) : i === 0) {
+        opt.dataset.gost = p.gost;
+        opt.dataset.layout = p.layout;
+        opt.title = `${p.gost}: ${p.mm}мм, ${p.layout}`;
+        if (current ? String(p.px) == String(current) : i === 1) { // Default to S2 (ТОРГ-12)
           opt.selected = true;
         }
         printSizeSelect.appendChild(opt);
@@ -115,10 +121,12 @@
       printDropdown.style.display = 'none';
     }
 
-    // Generate code at selected size and print
+    // Generate code at selected GOST size and print
     async function printWithSelectedSize() {
       const selectedSize = parseInt(printSizeSelect.value);
-      const selectedMM = parseFloat(printSizeSelect.selectedOptions[0].dataset.mm);
+      const selectedOption = printSizeSelect.selectedOptions[0];
+      const selectedMM = parseFloat(selectedOption.dataset.mm);
+      const gostCode = selectedOption.dataset.gost;
       
       try {
         const response = await fetch('{{ url_for("forms.api_generate_code") }}', {
@@ -127,7 +135,8 @@
           body: JSON.stringify({
             text: encodedText,
             code_type: codeType,
-            size: selectedSize
+            size: selectedSize,
+            gost_code: gostCode
           })
         });
         
@@ -176,7 +185,9 @@
       if (!count || count < 1 || count > 20) return;
 
       const selectedSize = parseInt(printSizeSelect.value);
-      const selectedMM = parseFloat(printSizeSelect.selectedOptions[0].dataset.mm);
+      const selectedOption = printSizeSelect.selectedOptions[0];
+      const selectedMM = parseFloat(selectedOption.dataset.mm);
+      const gostCode = selectedOption.dataset.gost;
       
       fetch('{{ url_for("forms.api_generate_code") }}', {
         method: 'POST',
@@ -184,7 +195,8 @@
         body: JSON.stringify({
           text: encodedText,
           code_type: codeType,
-          size: selectedSize
+          size: selectedSize,
+          gost_code: gostCode
         })
       })
       .then(response => response.json())
@@ -232,10 +244,13 @@
 
     function addToQueue() {
       const selectedSize = parseInt(printSizeSelect.value);
+      const selectedOption = printSizeSelect.selectedOptions[0];
+      const gostCode = selectedOption.dataset.gost;
       const item = {
         text: encodedText,
         code_type: codeType,
         size: selectedSize,
+        gost_code: gostCode,
         timestamp: Date.now()
       };
       printQueue.push(item);
@@ -333,13 +348,14 @@
           body: JSON.stringify({
             text: item.text,
             code_type: item.code_type,
-            size: item.size
+            size: item.size,
+            gost_code: item.gost_code
           })
         })
         .then(response => response.json())
         .then(data => {
           if (data && data.ok) {
-            const mm = (PRINT_PRESETS[item.code_type] || PRINT_PRESETS.QR).find(p => p.px === item.size)?.mm || 20;
+            const mm = (GOST_PRESETS[item.code_type] || GOST_PRESETS.QR).find(p => p.px === item.size)?.mm || 20;
             allCodes.push({
               dataUrl: data.data_url,
               mm: mm

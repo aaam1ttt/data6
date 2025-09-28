@@ -1,40 +1,46 @@
 <script>
 (function(){
-  const PRESETS={ 
+  const GOST_PRESETS={ 
     QR:[
-      {v:472,l:'15×15 мм'},
-      {v:630,l:'20×20 мм'}, 
-      {v:787,l:'25×25 мм'},
-      {v:945,l:'30×30 мм'}
+      {v:177,g:'QR-S1',l:'QR-S1: Малый (15×15 мм)'},
+      {v:236,g:'QR-S2',l:'QR-S2: Стандартный ТОРГ-12 (20×20 мм)'},
+      {v:295,g:'QR-S3',l:'QR-S3: Увеличенный (25×25 мм)'},
+      {v:354,g:'QR-S4',l:'QR-S4: Печатный (30×30 мм)'}
     ],
     DM:[
-      {v:378,l:'12×12 мм'},
-      {v:472,l:'15×15 мм'},
-      {v:630,l:'20×20 мм'},
-      {v:787,l:'25×25 мм'}
+      {v:94,g:'DM-S1',l:'DM-S1: Микро (8×8 мм)'},
+      {v:142,g:'DM-S2',l:'DM-S2: Малый (12×12 мм)'},
+      {v:189,g:'DM-S3',l:'DM-S3: Средний (16×16 мм)'},
+      {v:236,g:'DM-S4',l:'DM-S4: Большой (20×20 мм)'}
     ],
     C128:[
-      {v:378,l:'12 мм высота'},
-      {v:472,l:'15 мм высота'},
-      {v:630,l:'20 мм высота'}
+      {v:94,g:'C128-H1',l:'C128-H1: Низкий (30×8 мм)'},
+      {v:142,g:'C128-H2',l:'C128-H2: Средний (40×12 мм)'},
+      {v:177,g:'C128-H3',l:'C128-H3: Высокий (50×15 мм)'},
+      {v:236,g:'C128-H4',l:'C128-H4: Печатный (60×20 мм)'}
     ],
     PDF417:[
-      {v:378,l:'12 мм высота'},
-      {v:472,l:'15 мм высота'},
-      {v:630,l:'20 мм высота'}
+      {v:118,g:'PDF417-S1',l:'PDF417-S1: Компактный (25×10 мм)'},
+      {v:177,g:'PDF417-S2',l:'PDF417-S2: Стандартный (35×15 мм)'},
+      {v:236,g:'PDF417-S3',l:'PDF417-S3: Расширенный (45×20 мм)'},
+      {v:295,g:'PDF417-S4',l:'PDF417-S4: Полный (55×25 мм)'}
     ],
     AZTEC:[
-      {v:472,l:'15×15 мм'},
-      {v:630,l:'20×20 мм'},
-      {v:787,l:'25×25 мм'},
-      {v:945,l:'30×30 мм'}
+      {v:177,g:'AZ-S1',l:'AZ-S1: Малый (15×15 мм)'},
+      {v:236,g:'AZ-S2',l:'AZ-S2: Средний (20×20 мм)'},
+      {v:295,g:'AZ-S3',l:'AZ-S3: Большой (25×25 мм)'},
+      {v:354,g:'AZ-S4',l:'AZ-S4: Печатный (30×30 мм)'}
+    ]
     ]
   };
   function fill(select, type, current){
     select.innerHTML='';
-    (PRESETS[type]||PRESETS.QR).forEach((p,i)=>{
-      const opt=document.createElement('option'); opt.value=p.v; opt.textContent=p.l;
-      if (current ? String(p.v)==String(current) : i===0) opt.selected=true;
+    (GOST_PRESETS[type]||GOST_PRESETS.QR).forEach((p,i)=>{
+      const opt=document.createElement('option'); 
+      opt.value=p.v; 
+      opt.textContent=p.l;
+      opt.dataset.gost=p.g;
+      if (current ? String(p.v)==String(current) : i===1) opt.selected=true; // Default to S2
       select.appendChild(opt);
     });
   }
@@ -43,6 +49,15 @@
     const s=document.getElementById(sizeSelId);
     fill(s, t.value, currentSize);
     t.addEventListener('change', ()=>fill(s, t.value));
+    
+    // Store GOST code in form for submission
+    s.addEventListener('change', ()=>{
+      const selected = s.selectedOptions[0];
+      const gostInput = document.querySelector('input[name="gost_code"]');
+      if (gostInput) {
+        gostInput.value = selected.dataset.gost || '';
+      }
+    });
   }
 })();
 </script>

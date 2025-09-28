@@ -45,9 +45,10 @@ def api_generate_code():
     code_type = data.get("code_type") or "QR"
     size = int(data.get("size") or 300)
     human_text = (data.get("human_text") or "").strip()
+    gost_code = data.get("gost_code")  # GOST размер если указан
     if not text:
         return jsonify({"ok": False, "error": "Пустой текст"}), 400
-    img = generate_by_type(code_type, text, size=size, human_text=human_text)
+    img = generate_by_type(code_type, text, size=size, human_text=human_text, gost_code=gost_code)
     bio = io.BytesIO()
     img.save(bio, format="PNG", optimize=True)
     b64 = base64.b64encode(bio.getvalue()).decode("ascii")
@@ -58,12 +59,13 @@ def api_save_code():
     text = (request.form.get("text") or "").strip()
     code_type = request.form.get("code_type") or "QR"
     size = int(request.form.get("size") or 300)
+    gost_code = request.form.get("gost_code")
     fmt = (request.form.get("fmt") or "png").lower()
     if not text:
         flash("Пустой текст", "error")
         return redirect(url_for("forms.create_free"))
 
-    img = generate_by_type(code_type, text, size=size)
+    img = generate_by_type(code_type, text, size=size, gost_code=gost_code)
 
     if session.get("user"):
         _ = _save_and_maybe_log(img, text, code_type, detect_form_by_prefix(text))
@@ -262,15 +264,16 @@ def form_torg12():
     if request.method == "POST":
         code_type = request.form.get("code_type") or "QR"
         size = int(request.form.get("size") or 300)
+        gost_code = request.form.get("gost_code")
         values: Dict[str, str] = {}
         for code, _label in TORG12_FIELDS:
             values[code] = (request.form.get(f"f_{code}") or "").strip()
         encoded = torg12_make_string(values)
-        img = generate_by_type(code_type, encoded, size=size)
+        img = generate_by_type(code_type, encoded, size=size, gost_code=gost_code)
         fname = _save_and_maybe_log(img, encoded, (code_type or 'QR').upper(), "torg12")
         return render_template("form_torg12.html", title="ТОРГ-12",
                                fields=TORG12_FIELDS, initial=values, result_image=url_for("forms.code_image", filename=fname),
-                               encoded=encoded, code_type=code_type, size=size)
+                               encoded=encoded, code_type=code_type, size=size, gost_code=gost_code)
     return render_template("form_torg12.html", title="ТОРГ-12", fields=TORG12_FIELDS, initial=initial)
 
 @bp.route("/message", methods=["GET", "POST"])
