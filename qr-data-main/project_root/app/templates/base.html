@@ -138,6 +138,23 @@
   font-size:16px;
   font-weight:600;
 }
+
+/* === QR Code Preview Styling === */
+.preview{
+  padding:12px;               /* Reduced padding from default 24px */
+  text-align:center;
+}
+.preview h3{
+  margin:0 0 8px;            /* Reduced bottom margin */
+}
+.preview img{
+  max-width:100%;
+  height:auto;
+  border:2px solid var(--line);  /* Small border around QR code */
+  border-radius:8px;
+  background:white;           /* White background for QR code */
+  padding:8px;               /* Minimal padding for the QR code itself */
+}
   </style>
   <script src="{{ url_for('static', filename='print-fix.js') }}"></script>
 </head>
