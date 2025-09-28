@@ -76,33 +76,58 @@ def generate_qr(text: str, size: int = 300, preferred_ecc: str = "H") -> Image.I
     start = order.index(preferred_ecc) if preferred_ecc in order else 0
     try_levels = order[start:]
 
+    # Ensure minimum high-quality size
+    min_size = max(size, 600)  # Minimum 600px for high quality
+    
+    # Calculate high DPI box size for crisp printing (300 DPI equivalent)
+    target_dpi = 300
+    base_box_size = max(8, min_size // 37)  # Adaptive box size based on image size
+    
     last_err: Optional[Exception] = None
     for lvl in try_levels:
         try:
             qr = qrcode.QRCode(
                 version=None,
                 error_correction=ecc_map[lvl],
-                box_size=10,
-                border=4
+                box_size=base_box_size,
+                border=8  # Increased border for better scanning
             )
             qr.add_data(text)
             qr.make(fit=True)
-            n_modules = len(qr.get_matrix())
+            
+            # Get actual matrix size after fitting
+            matrix = qr.get_matrix()
+            n_modules = len(matrix)
             border = qr.border
             total_modules = n_modules + border * 2
-            box_size = max(1, size // total_modules)
+            
+            # Calculate optimal box size for target resolution
+            box_size = max(base_box_size, min_size // total_modules)
             qr.box_size = box_size
+            
+            # Generate high-quality image with precise dimensions
             img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
-            out_w = total_modules * box_size
-            if out_w != size:
-                img = _scale_nearest_exact(img, size)
+            
+            # Calculate actual output dimensions
+            actual_size = total_modules * box_size
+            
+            # Scale to exact target size using high-quality resampling if needed
+            if actual_size != size:
+                # For upscaling, use LANCZOS for smooth results
+                # For downscaling from high-res, use LANCZOS to maintain sharpness
+                if actual_size > size:
+                    img = img.resize((size, size), Image.LANCZOS)
+                else:
+                    # For upscaling, use nearest neighbor to maintain sharp edges
+                    img = _scale_nearest_exact(img, size)
 
             # ---- вставляем логотип ----
             logo_path = os.path.join(os.path.dirname(__file__), "..", "static", "star.png")
             logo_path = os.path.abspath(logo_path)
             if os.path.exists(logo_path):
                 logo = Image.open(logo_path).convert("RGBA")
-                logo_size = size // 5
+                # Smaller logo for high error correction to ensure scannability
+                logo_size = size // 8 if lvl == "H" else size // 6
                 logo = logo.resize((logo_size, logo_size), Image.LANCZOS)
                 pos = ((img.size[0] - logo.size[0]) // 2, (img.size[1] - logo.size[1]) // 2)
                 img.paste(logo, pos, mask=logo)
@@ -114,8 +139,27 @@ def generate_qr(text: str, size: int = 300, preferred_ecc: str = "H") -> Image.I
     raise ValueError("Слишком длинный текст для QR даже на уровне L") from last_err
 def generate_dm(text: str, size: int = 300) -> Image.Image:
     from pylibdmtx.pylibdmtx import encode as dm_encode
+    
+    # Ensure minimum high-quality size for DataMatrix
+    min_size = max(size, 600)
+    
     en = dm_encode(text.encode("utf-8"))
     base = Image.frombytes('RGB', (en.width, en.height), en.pixels)
+    
+    # Scale using nearest neighbor to maintain sharp edges for matrix codes
+    if base.size[0] < min_size:
+        # Calculate scaling factor for high-quality output
+        scale_factor = min_size // max(base.size)
+        scale_factor = max(scale_factor, 8)  # Minimum 8x scaling for crisp output
+        high_res = base.resize(
+            (base.size[0] * scale_factor, base.size[1] * scale_factor), 
+            Image.NEAREST
+        )
+        # Then scale down to target size if needed
+        if high_res.size[0] != size:
+            return high_res.resize((size, size), Image.LANCZOS)
+        return high_res
+    
     return _scale_nearest_exact(base, size)
 
 def generate_code128(text: str, size: int = 300, human_text: str = "") -> Image.Image:
@@ -197,20 +241,39 @@ def generate_aztec(text: str, size: int = 300) -> Image.Image:
         
     except ImportError:
         # Fallback to QR code if aztec-code-generator is not available
-        try:
-            import qrcode
-            qr = qrcode.QRCode(
-                version=None,
-                error_correction=qrcode.constants.ERROR_CORRECT_H,
-                box_size=10,
-                border=4
-            )
-            qr.add_data(text)
-            qr.make(fit=True)
-            img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
-            return _scale_nearest_exact(img, size)
-        except Exception as e:
-            raise RuntimeError("Не удалось сгенерировать Aztec и QR-код.") from e
+        # Use high-quality settings for fallback QR code
+        import qrcode
+        
+        min_size = max(size, 600)
+        base_box_size = max(8, min_size // 37)
+        
+        qr = qrcode.QRCode(
+            version=None,
+            error_correction=qrcode.constants.ERROR_CORRECT_H,
+            box_size=base_box_size,
+            border=8
+        )
+        qr.add_data(text)
+        qr.make(fit=True)
+        
+        matrix = qr.get_matrix()
+        n_modules = len(matrix)
+        border = qr.border
+        total_modules = n_modules + border * 2
+        
+        box_size = max(base_box_size, min_size // total_modules)
+        qr.box_size = box_size
+        
+        img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
+        actual_size = total_modules * box_size
+        
+        if actual_size != size:
+            if actual_size > size:
+                img = img.resize((size, size), Image.LANCZOS)
+            else:
+                img = _scale_nearest_exact(img, size)
+        
+        return img
     except Exception as e:
         raise RuntimeError("Не удалось сгенерировать Aztec-код.") from e
 
@@ -236,7 +299,8 @@ def generate_by_type(code_type: str, text: str, size: int = 300, human_text: str
 
 def save_image(img: Image.Image, full_path: str) -> None:
     os.makedirs(os.path.dirname(full_path), exist_ok=True)
-    img.save(full_path, "PNG", optimize=True)
+    # Save with high quality settings for better print results
+    img.save(full_path, "PNG", optimize=False, compress_level=1, dpi=(300, 300))
 
 def decode_qr(pil_img: Image.Image) -> Optional[str]:
     import numpy as np
