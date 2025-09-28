@@ -425,15 +425,18 @@ def generate_by_type(code_type: str, text: str, size: int = 300, human_text: str
     # Подготавливаем текст для кодирования (транслитерация кириллицы)
     processed_text = prepare_text_for_barcode(text)
     
-    if code_type == "qr":
+    # Normalize code type to lowercase for consistent comparison
+    code_type_lower = code_type.lower()
+    
+    if code_type_lower == "qr":
         return generate_qr(processed_text, size, "H", gost_code)
-    elif code_type == "dm":
+    elif code_type_lower == "dm":
         return generate_dm(processed_text, size, gost_code)
-    elif code_type == "code128":
+    elif code_type_lower == "code128":
         return generate_code128(processed_text, size, human_text, gost_code)
-    elif code_type == "pdf417":
+    elif code_type_lower == "pdf417":
         return generate_pdf417(processed_text, size, human_text, gost_code)
-    elif code_type == "aztec":
+    elif code_type_lower == "aztec":
         return generate_aztec(processed_text, size, gost_code)
     else:
         raise ValueError(f"Неизвестный тип кода: {code_type}")
