@@ -74,19 +74,20 @@
       <button id="clearBtn" class="btn danger" type="button">Очистить</button>
     </div>
     <div style="margin-left:auto;">
-      <button id="openFormsBtn" class="btn" type="button">Создать форму</button>
+      <div class="dropdown" style="position:relative; display:inline-block;">
+        <button id="openFormsBtn" class="btn" type="button">Создать форму ▼</button>
+        <div id="formsDropdown" class="dropdown-content" style="display:none; position:absolute; top:100%; right:0; background:#1e293b; border:1px solid #374151; border-radius:8px; min-width:200px; z-index:1000; box-shadow:0 4px 6px rgba(0,0,0,0.1);">
+          <a class="dropdown-item" href="{{ url_for('forms.form_torg12') }}">ТОРГ-12</a>
+          <a class="dropdown-item" href="{{ url_for('forms.form_message') }}">Состав конверта (Сообщение)</a>
+          <a class="dropdown-item" href="{{ url_for('forms.form_exploitation') }}">Эксплуатационная структура</a>
+          <a class="dropdown-item" href="{{ url_for('forms.form_transport') }}">Транспортная маркировка</a>
+          <a class="dropdown-item" href="{{ url_for('forms.form_custom') }}">Произвольная таблица</a>
+        </div>
+      </div>
     </div>
   </div>
 
-  <div id="formsModal" class="card" style="display:none; margin-top:12px;">
-    <div style="display:flex; gap:8px; flex-wrap:wrap;">
-      <a class="btn" href="{{ url_for('forms.form_torg12') }}">ТОРГ-12</a>
-      <a class="btn" href="{{ url_for('forms.form_message') }}">Состав конверта (Сообщение)</a>
-      <a class="btn" href="{{ url_for('forms.form_exploitation') }}">Эксплуатационная структура</a>
-      <a class="btn" href="{{ url_for('forms.form_transport') }}">Транспортная маркировка</a>
-      <a class="btn" href="{{ url_for('forms.form_custom') }}">Произвольная таблица</a>
-    </div>
-  </div>
+
 
   <!-- Модальное окно очереди печати -->
   <div id="queueModal" class="card" style="position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:1000; display:none; max-width:80vw; max-height:80vh; background:#1e293b; border:2px solid #374151; overflow-y:auto;">
@@ -144,9 +145,9 @@
     .select-btn { height:40px; padding:0 12px; border-radius:10px; background:#334155; color:#fff; border:none; }
     
     .dropdown-item {
-      display:block; width:100%; padding:8px 12px; background:none; border:none; color:#e6e6e6; text-align:left; cursor:pointer; border-bottom:1px solid #374151;
+      display:block; width:100%; padding:8px 12px; background:none; border:none; color:#e6e6e6; text-align:left; cursor:pointer; border-bottom:1px solid #374151; text-decoration:none;
     }
-    .dropdown-item:hover { background:#374151; }
+    .dropdown-item:hover { background:#374151; color:#e6e6e6; }
     .dropdown-item:last-child { border-bottom:none; }
     .dropdown-item.danger { color:#ef4444; }
     .dropdown-item.danger:hover { background:#7f1d1d; }
@@ -192,6 +193,7 @@
   const clearAllQueueBtn = document.getElementById('clearAllQueueBtn');
 
   const openFormsBtn = document.getElementById('openFormsBtn');
+  const formsDropdown = document.getElementById('formsDropdown');
   const formsModal   = document.getElementById('formsModal');
 
   const impFile   = document.getElementById('impFile');
@@ -619,13 +621,22 @@
     }, 400);
   }
 
-  // Функции для выпадающего меню
+  // Функции для выпадающего меню печати
   function togglePrintDropdown(){
     printDropdown.style.display = printDropdown.style.display === 'none' ? 'block' : 'none';
   }
 
   function hidePrintDropdown(){
     printDropdown.style.display = 'none';
+  }
+
+  // Функции для выпадающего меню форм
+  function toggleFormsDropdown(){
+    formsDropdown.style.display = formsDropdown.style.display === 'none' ? 'block' : 'none';
+  }
+
+  function hideFormsDropdown(){
+    formsDropdown.style.display = 'none';
   }
 
   // Функции для очереди
@@ -745,10 +756,13 @@
   // Обработчики выпадающего меню печати
   printBtn.addEventListener('click', togglePrintDropdown);
   
-  // Закрытие выпадающего меню при клике вне его
+  // Закрытие выпадающих меню при клике вне них
   document.addEventListener('click', (e) => {
     if (!printBtn.contains(e.target) && !printDropdown.contains(e.target)) {
       hidePrintDropdown();
+    }
+    if (!openFormsBtn.contains(e.target) && !formsDropdown.contains(e.target)) {
+      hideFormsDropdown();
     }
   });
 
@@ -805,9 +819,8 @@
     refreshButtons();
   });
 
-  openFormsBtn.addEventListener('click', () => {
-    formsModal.style.display = (formsModal.style.display === 'none' || formsModal.style.display === '') ? 'block' : 'none';
-  });
+  // Обработчик выпадающего меню форм
+  openFormsBtn.addEventListener('click', toggleFormsDropdown);
 
   fillSizePresets();
   toggleHumanTextField();
