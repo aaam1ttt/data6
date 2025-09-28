@@ -11,7 +11,7 @@ def test_gost_dimensions():
     """Test GOST dimension functionality"""
     print("=== Testing GOST Dimension System ===\n")
     
-    # Test QR dimensions
+
     print("QR Code GOST Dimensions:")
     qr_dims = get_gost_dimensions("QR")
     for dim in qr_dims:
@@ -22,7 +22,7 @@ def test_gost_dimensions():
         print(f"    Efficiency: {layout['usage_efficiency']}% page usage")
         print()
     
-    # Test DataMatrix dimensions
+
     print("DataMatrix GOST Dimensions:")
     dm_dims = get_gost_dimensions("DM")
     for dim in dm_dims:
@@ -32,21 +32,21 @@ def test_gost_dimensions():
         print(f"    Layout: {layout['horizontal_count']}x{layout['vertical_count']} = {layout['total_per_page']} codes per A4")
         print()
     
-    # Test Code generation with GOST sizes
+
     print("Testing QR generation with GOST dimensions:")
     test_text = "ТЕСТОВЫЙ ТЕКСТ ДЛЯ QR КОДА ПО ГОСТ"
     
     try:
-        # Generate QR with GOST S2 (ТОРГ-12 standard)
+
         qr_s2 = generate_by_type("QR", test_text, gost_code="QR-S2")
         print(f"  QR-S2 generated: {qr_s2.size}")
         
-        # Generate DataMatrix with GOST S3
+
         dm_s3 = generate_by_type("DM", test_text, gost_code="DM-S3")
         print(f"  DM-S3 generated: {dm_s3.size}")
         
-        # Generate Code128 with GOST H2
-        c128_h2 = generate_by_type("C128", test_text, gost_code="C128-H2")
+
+        c128_h2 = generate_by_type("code128", test_text, gost_code="C128-H2")
         print(f"  C128-H2 generated: {c128_h2.size}")
         
         print("\nAll GOST generation tests passed!")
@@ -55,7 +55,7 @@ def test_gost_dimensions():
         print(f"GOST generation test failed: {e}")
         return False
     
-    # Test legacy size migration
+
     print("\nTesting legacy size migration:")
     test_sizes = [300, 420, 600, 280, 360]
     for old_size in test_sizes:

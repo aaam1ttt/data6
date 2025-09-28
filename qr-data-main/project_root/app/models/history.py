@@ -31,7 +31,7 @@ def add_history(user_id: int, action: str, code_type: str, form_type: Optional[s
         (user_id, action, code_type, form_type, content, image_path)
     )
     db.commit()
-    # после вставки — авто-прореживание (оставляем максимум 100 последних)
+
     prune_history_by_user(user_id, keep=100)
 
 def list_history_by_user(user_id: int, limit: int = 200) -> List[Dict]:

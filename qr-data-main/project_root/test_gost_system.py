@@ -110,6 +110,11 @@ def test_size_accuracy():
         except Exception as e:
             print(f"FAIL {dim.code}: Failed to generate - {e}")
             return False
+                return False
+                
+        except Exception as e:
+            print(f"FAIL {dim.code}: Failed to generate - {e}")
+            return False
     
     return True
 

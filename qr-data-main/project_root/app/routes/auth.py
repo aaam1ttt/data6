@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from ..models.users import find_user_by_username, verify_password, touch_last_login
 from ..models.history import delete_history_by_user
 from datetime import datetime
-from dateutil import parser  # если нет, установи python-dateutil; но мы обойдёмся без парсера
+
 
 bp = Blueprint("auth", __name__)
 
@@ -16,10 +16,10 @@ def login():
             flash("Неверный логин или пароль", "error")
             return render_template("login.html", title="Вход")
 
-        # авто-очистка истории, если не заходил > 10 дней
+
         last_login = user.get("last_login")
         if last_login:
-            # last_login в SQLite формате 'YYYY-MM-DD HH:MM:SS'
+
             try:
                 from datetime import datetime, timedelta
                 last_dt = datetime.strptime(last_login, "%Y-%m-%d %H:%M:%S")

@@ -27,7 +27,7 @@ def init_users_schema(app):
             );
             """
         )
-        # добавим last_login если нет
+
         if not _column_exists("users", "last_login"):
             try:
                 db.execute("ALTER TABLE users ADD COLUMN last_login DATETIME")

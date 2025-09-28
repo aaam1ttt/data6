@@ -14,26 +14,26 @@ def test_barcode_text():
     """Test Code 128 and PDF417 with human text to verify font size increase"""
     print("Testing barcode text font size improvements...")
     
-    # Test Code 128
+
     try:
         print("\n1. Testing Code 128 with human text...")
         code128_img = generate_code128("TEST123", size=400, human_text="TEST123")
         print(f"   Code 128 generated: {code128_img.size}")
         
-        # Save test image
+
         code128_img.save("test_code128_with_text.png")
         print("   Saved as: test_code128_with_text.png")
         
     except Exception as e:
         print(f"   [ERROR] Code 128 generation failed: {e}")
     
-    # Test PDF417
+
     try:
         print("\n2. Testing PDF417 with human text...")
         pdf417_img = generate_pdf417("TEST123", size=400, human_text="TEST123")
         print(f"   PDF417 generated: {pdf417_img.size}")
         
-        # Save test image
+
         pdf417_img.save("test_pdf417_with_text.png")
         print("   Saved as: test_pdf417_with_text.png")
         

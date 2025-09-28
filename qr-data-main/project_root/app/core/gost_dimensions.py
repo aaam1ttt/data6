@@ -153,21 +153,15 @@ def get_legacy_pixel_size(dimension: GostDimension, target_dpi: int = 300) -> in
         # Расчет для произвольного DPI
         base_pixels = int(max(dimension.mm_width, dimension.mm_height) * target_dpi / 25.4)
     
-    # Для квадратных кодов берем максимальную сторону
-    # Для линейных кодов (C128, PDF417) берем высоту, так как система ожидает этот параметр
     if dimension.mm_width == dimension.mm_height:
-        return base_pixels  # Квадратный код
+        return base_pixels
     else:
-        return int(dimension.mm_height * target_dpi / 25.4)  # Линейный код - высота
+        return int(dimension.mm_height * target_dpi / 25.4)
 
-# Таблица соответствия старых размеров с новыми ГОСТ размерами для плавного перехода
 LEGACY_TO_GOST_MAPPING = {
-    # QR коды
-    300: "QR-S4",    # Старый "стандарт" -> ГОСТ печатный
-    420: "QR-S4",    # Приблизительно соответствует
-    600: "QR-S4",    # Большой размер остается как печатный
-    
-    # DataMatrix
+    300: "QR-S4",
+    420: "QR-S4",
+    600: "QR-S4",
     280: "DM-S4",    # Старый "стандарт" -> ГОСТ большой
     360: "DM-S4",    # Соответствует
     520: "DM-S4",    # Большой размер

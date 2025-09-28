@@ -25,13 +25,13 @@ def test_basic_generation():
             print(f"Test {i+1}: {text[:30]} -> {size}px, ECC:{ecc}")
             qr_img = generate_qr(text, size=size, preferred_ecc=ecc)
             
-            # Check dimensions
+
             if qr_img.size == (size, size):
                 print(f"  [OK] Dimensions: {qr_img.size}")
             else:
                 print(f"  [ERROR] Expected {size}x{size}, got {qr_img.size}")
                 
-            # Check image properties  
+
             print(f"  [INFO] Mode: {qr_img.mode}, Format: {qr_img.format}")
             
         except Exception as e:

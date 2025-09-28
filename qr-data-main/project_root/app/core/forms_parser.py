@@ -116,7 +116,7 @@ def torg12_parse_string(s: str) -> Dict[str, str]:
 
 # --- Message ENVELOPE ---
 def env_make_string(pairs: List[Tuple[str, str]]) -> str:
-    # "param:value" через "/" внутри префикса/суффикса
+
     chunks = []
     for p, v in pairs:
         p = (p or "").strip()

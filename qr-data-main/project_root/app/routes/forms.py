@@ -45,7 +45,7 @@ def api_generate_code():
     code_type = data.get("code_type") or "QR"
     size = int(data.get("size") or 300)
     human_text = (data.get("human_text") or "").strip()
-    gost_code = data.get("gost_code")  # GOST размер если указан
+    gost_code = data.get("gost_code")
     if not text:
         return jsonify({"ok": False, "error": "Пустой текст"}), 400
     img = generate_by_type(code_type, text, size=size, human_text=human_text, gost_code=gost_code)

@@ -53,7 +53,7 @@ def transliterate_to_latin(text: str) -> str:
     while i < len(text):
         char = text[i]
         
-        # Проверяем четырехсимвольные комбинации (shch)
+
         if i < len(text) - 3:
             four_char = char + text[i + 1] + text[i + 2] + text[i + 3]
             if four_char.lower() in CYRILLIC_TO_LATIN:
@@ -61,7 +61,7 @@ def transliterate_to_latin(text: str) -> str:
                 i += 4
                 continue
         
-        # Проверяем трехсимвольные комбинации
+
         if i < len(text) - 2:
             three_char = char + text[i + 1] + text[i + 2]
             if three_char.lower() in CYRILLIC_TO_LATIN:
@@ -69,7 +69,7 @@ def transliterate_to_latin(text: str) -> str:
                 i += 3
                 continue
         
-        # Проверяем двухсимвольные комбинации
+
         if i < len(text) - 1:
             two_char = char + text[i + 1]
             if two_char.lower() in CYRILLIC_TO_LATIN:
@@ -77,7 +77,7 @@ def transliterate_to_latin(text: str) -> str:
                 i += 2
                 continue
         
-        # Одиночный символ
+
         if char in CYRILLIC_TO_LATIN:
             result += CYRILLIC_TO_LATIN[char]
         else:
@@ -91,21 +91,21 @@ def transliterate_to_cyrillic(text: str) -> str:
     if not text:
         return text
     
-    # Сначала проверяем маркер
+
     if text.startswith(TRANSLITERATION_MARKER):
         text = text[len(TRANSLITERATION_MARKER):]
         is_marked = True
     else:
         is_marked = False
     
-    # Если текст не помечен как транслитерация, проверяем, похож ли он на русский
+
     if not is_marked and not looks_like_russian_transliteration(text):
         return text
     
     result = ""
     i = 0
     while i < len(text):
-        # Проверяем четырехсимвольные комбинации
+
         if i < len(text) - 3:
             four_char = text[i:i+4].lower()
             if four_char in LATIN_TO_CYRILLIC:
@@ -113,7 +113,7 @@ def transliterate_to_cyrillic(text: str) -> str:
                 i += 4
                 continue
         
-        # Проверяем трехсимвольные комбинации
+
         if i < len(text) - 2:
             three_char = text[i:i+3].lower()
             if three_char in LATIN_TO_CYRILLIC:
@@ -121,7 +121,7 @@ def transliterate_to_cyrillic(text: str) -> str:
                 i += 3
                 continue
         
-        # Проверяем двухсимвольные комбинации
+
         if i < len(text) - 1:
             two_char = text[i:i+2].lower()
             if two_char in LATIN_TO_CYRILLIC:
@@ -129,7 +129,7 @@ def transliterate_to_cyrillic(text: str) -> str:
                 i += 2
                 continue
         
-        # Одиночный символ
+
         char = text[i]
         if char.lower() in LATIN_TO_CYRILLIC:
             result += LATIN_TO_CYRILLIC[char]
@@ -144,19 +144,19 @@ def looks_like_russian_transliteration(text: str) -> bool:
     if not text:
         return False
     
-    # Убираем знаки препинания и цифры для анализа
+
     clean_text = re.sub(r'[^a-zA-Z\s]', '', text).lower()
     words = clean_text.split()
     
     if not words:
         return False
     
-    # Проверяем характерные русские звуки в транслитерации
+
     russian_patterns = [
         r'shch', r'zh', r'kh', r'ts', r'ch', r'sh', r'yu', r'ya', r'yo'
     ]
     
-    # Проверяем окончания слов, характерные для русского
+
     russian_endings = [
         r'ov$', r'ev$', r'in$', r'yn$', r'aya$', r'aya$', r'oye$', r'iy$', r'aya$'
     ]
@@ -165,17 +165,17 @@ def looks_like_russian_transliteration(text: str) -> bool:
     ending_score = 0
     
     for word in words:
-        # Проверяем паттерны
+
         for pattern in russian_patterns:
             if re.search(pattern, word):
                 pattern_score += 1
         
-        # Проверяем окончания
+
         for ending in russian_endings:
             if re.search(ending, word):
                 ending_score += 1
     
-    # Если есть характерные русские паттерны или окончания, считаем транслитерацией
+
     return pattern_score > 0 or ending_score > len(words) * 0.3
 
 def prepare_text_for_barcode(text: str, add_marker: bool = True) -> str:

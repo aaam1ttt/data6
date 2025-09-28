@@ -11,7 +11,7 @@ def create_app():
     @app.route('/favicon.ico')
     def favicon():
         return send_from_directory(current_app.static_folder, 'favicon.ico', mimetype='image/vnd.microsoft.icon')
-    app.config["SECRET_KEY"] = "dev-secret"  # замени на свой
+    app.config["SECRET_KEY"] = "dev-secret"
 
     base_dir = os.path.dirname(os.path.abspath(__file__))
     data_dir = os.path.join(base_dir, "data")
@@ -22,14 +22,13 @@ def create_app():
     app.config["DATABASE_PATH"] = os.path.join(data_dir, "app.db")
     app.config["STORAGE_CODES_DIR"] = codes_dir
     app.config["STORAGE_UPLOADS_DIR"] = uploads_dir
-    app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024  # 20MB
+    app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024
 
     ensure_dirs([data_dir, storage_dir, codes_dir, uploads_dir])
     init_db_teardown(app)
     init_users_schema(app)
     init_history_schema(app)
 
-    # Включай автосид, только если нужно:
     if os.getenv("AUTO_SEED_ADMIN", "1") == "1":
         ensure_admin_seed(app)
 

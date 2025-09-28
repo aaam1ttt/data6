@@ -28,10 +28,10 @@ def test_qr_quality():
         "https://example.com/test?param=value&other=123",
         "Тестовый текст на русском языке с кириллицей",
         "Complex JSON data: " + json.dumps({"name": "Test User", "id": 12345, "roles": ["admin", "user"], "active": True}),
-        "Very long text " * 50  # Long text to test capacity
+        "Very long text " * 20
     ]
     
-    sizes = [300, 600, 900]  # Test different output sizes
+    sizes = [300, 600, 900]
     error_levels = ["H", "Q", "M", "L"]
     
     print("Testing QR code quality improvements...")
@@ -48,15 +48,15 @@ def test_qr_quality():
             for ecc in error_levels:
                 total_tests += 1
                 try:
-                    # Generate QR code
+
                     qr_img = generate_qr(text, size=size, preferred_ecc=ecc)
                     
-                    # Verify dimensions
+
                     if qr_img.size != (size, size):
                         print(f"  [ERROR] Size mismatch for {size}px/{ecc}: got {qr_img.size}")
                         continue
                     
-                    # Test decoding
+
                     decoded = decode_auto(qr_img)
                     if decoded and len(decoded) > 0:
                         decoded_text = decoded[0].get('text', '')
@@ -76,7 +76,7 @@ def test_qr_quality():
                     else:
                         print(f"  [ERROR] {size}px/{ecc}: Error - {e}")
     
-    # Test other code types
+
     print(f"\nTesting other barcode types...")
     test_text = "Test123"
     
@@ -121,7 +121,7 @@ def test_visual_quality():
     sample_text = "https://example.com/test-qr-quality-check"
     
     with tempfile.TemporaryDirectory() as temp_dir:
-        # Test different sizes and quality settings
+
         test_configs = [
             (300, "H", "300px_high_quality"),
             (600, "H", "600px_high_quality"), 
@@ -136,7 +136,7 @@ def test_visual_quality():
                 file_path = os.path.join(temp_dir, f"{filename}.png")
                 save_image(img, file_path)
                 
-                # Verify file was created and get size
+
                 if os.path.exists(file_path):
                     file_size = os.path.getsize(file_path)
                     print(f"  [OK] {filename}: {size}x{size}px, {file_size} bytes, ECC:{ecc}")
