@@ -47,12 +47,9 @@
 
 
 
-  <label id="editToggleLabel" style="display:flex;align-items:center;gap:6px; margin-top:8px; cursor:pointer; user-select:none;">
-    <input type="checkbox" id="allowEdit" checked style="display:none;">
-    <div id="toggleCheckbox" style="width:16px; height:16px; border:2px solid #10b981; border-radius:3px; display:flex; align-items:center; justify-content:center; background-color:white; transition:all 0.2s ease;">
-      <span id="checkmark" style="color:#10b981; font-size:12px; font-weight:bold;">✓</span>
-    </div>
-    <span style="font-size:14px; color:#374151;">Разрешить редактирование</span>
+  <label id="editToggleLabel" style="display:flex;align-items:center;gap:8px; margin-top:8px; cursor:pointer; user-select:none;">
+    <input type="checkbox" id="allowEdit" checked style="width:16px; height:16px; cursor:pointer;">
+    <span style="font-size:14px; color:#e6e6e6;">Разрешить редактирование</span>
   </label>
 
   <div class="toolbar" style="display:flex; gap:8px; align-items:center; margin-top:10px; flex-wrap:wrap;">
@@ -714,32 +711,8 @@
 
 
 
-  // Enhanced toggle functionality with styling
-  const editToggleLabel = document.getElementById('editToggleLabel');
-  const toggleCheckbox = document.getElementById('toggleCheckbox');
-  const checkmark = document.getElementById('checkmark');
-  
-  function updateToggleStyle() {
-    const isChecked = allowEdit.checked;
-    if (isChecked) {
-      toggleCheckbox.style.backgroundColor = 'white';
-      toggleCheckbox.style.borderColor = '#10b981';
-      checkmark.style.color = '#10b981';
-      checkmark.textContent = '✓';
-    } else {
-      toggleCheckbox.style.backgroundColor = '#f3f4f6';
-      toggleCheckbox.style.borderColor = '#d1d5db';
-      checkmark.style.color = 'transparent';
-      checkmark.textContent = '';
-    }
-  }
-  
-  editToggleLabel.addEventListener('click', (e) => {
-    e.preventDefault();
-    allowEdit.checked = !allowEdit.checked;
-    updateToggleStyle();
-    
-    const editable = allowEdit.checked;
+  allowEdit.addEventListener('change', (e) => {
+    const editable = e.target.checked;
     for (const td of document.querySelectorAll('#tblBody td')){
       td.contentEditable = editable ? "true" : "false";
     }
