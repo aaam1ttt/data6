@@ -47,8 +47,14 @@
 
 
 
-  <label style="display:flex;align-items:center;gap:6px; margin-top:6px;">
-    <input type="checkbox" id="allowEdit" style="width:auto;" checked> Разрешить редактирование
+  <label id="editToggleLabel" style="display:flex;align-items:center;gap:8px; margin-top:8px; cursor:pointer; user-select:none; padding:8px 12px; border-radius:8px; background-color:#f8fafc; border:2px solid #e2e8f0; transition:all 0.3s ease;">
+    <input type="checkbox" id="allowEdit" checked style="display:none;">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div id="toggleCheckbox" style="width:20px; height:20px; border:2px solid #3b82f6; border-radius:4px; display:flex; align-items:center; justify-content:center; background-color:white; transition:all 0.3s ease;">
+        <span id="checkmark" style="color:#3b82f6; font-size:14px; font-weight:bold;">✓</span>
+      </div>
+      <span style="font-weight:500; color:#374151;">Разрешить редактирование</span>
+    </div>
   </label>
 
   <div class="toolbar" style="display:flex; gap:8px; align-items:center; margin-top:10px; flex-wrap:wrap;">
@@ -710,13 +716,42 @@
 
 
 
-  allowEdit.addEventListener('change', () => {
+  // Enhanced toggle functionality with styling
+  const editToggleLabel = document.getElementById('editToggleLabel');
+  const toggleCheckbox = document.getElementById('toggleCheckbox');
+  const checkmark = document.getElementById('checkmark');
+  
+  function updateToggleStyle() {
+    const isChecked = allowEdit.checked;
+    if (isChecked) {
+      toggleCheckbox.style.backgroundColor = '#3b82f6';
+      toggleCheckbox.style.borderColor = '#3b82f6';
+      checkmark.style.color = 'white';
+      checkmark.style.display = 'block';
+      editToggleLabel.style.backgroundColor = '#eff6ff';
+      editToggleLabel.style.borderColor = '#3b82f6';
+    } else {
+      toggleCheckbox.style.backgroundColor = 'white';
+      toggleCheckbox.style.borderColor = '#d1d5db';
+      checkmark.style.display = 'none';
+      editToggleLabel.style.backgroundColor = '#f9fafb';
+      editToggleLabel.style.borderColor = '#d1d5db';
+    }
+  }
+  
+  editToggleLabel.addEventListener('click', () => {
+    allowEdit.checked = !allowEdit.checked;
+    updateToggleStyle();
+    
     const editable = allowEdit.checked;
     for (const td of document.querySelectorAll('#tblBody td')){
       td.contentEditable = editable ? "true" : "false";
     }
     applyBtn.style.display = editable ? 'inline-block' : 'none';
   });
+  
+  // Initialize toggle style
+  updateToggleStyle();
 
   addRowBtn.addEventListener('click', (e)=>{ e.preventDefault(); addRow(); });
   addColBtn.addEventListener('click', (e)=>{ e.preventDefault(); addCol(); });
