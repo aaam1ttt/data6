@@ -37,7 +37,7 @@
 
   <label style="margin-top:12px;">Текст
     <textarea id="textInput" rows="5" class="autogrow"
-              style="width:100%; background:#0b1220; color:#e6e6e6; border:1px solid #374151; border-radius:8px; padding:10px; resize:none; overflow:hidden; white-space:pre-wrap; line-height:1.4;" maxlength="2000"></textarea>
+              style="width:100%; background:#0b1220; color:#e6e6e6; border:1px solid #374151; border-radius:8px; padding:10px; resize:none; overflow:hidden; white-space:pre-wrap; line-height:1.4;" maxlength="5000"></textarea>
   </label>
   
   <label id="textUnderLabel" style="margin-top:12px; display:none;">Текст под кодом
@@ -231,7 +231,7 @@
     PDF417: [{px:378,label:'12 мм высота', mm:12},{px:472,label:'15 мм высота', mm:15},{px:630,label:'20 мм высота', mm:20}],
     AZTEC:  [{px:472,label:'15×15 мм', mm:15},{px:630,label:'20×20 мм', mm:20},{px:787,label:'25×25 мм', mm:25},{px:945,label:'30×30 мм', mm:30}]
   };
-  const LIMITS = { QR: 2953, DM: 1556, C128: 80, PDF417: 1800, AZTEC: 1900 };
+  const LIMITS = { QR: 2953, DM: 1556, C128: 2000, PDF417: 2500, AZTEC: 1900 };
 
   function utf8len(s){ return (new TextEncoder()).encode(s||'').length; }
 

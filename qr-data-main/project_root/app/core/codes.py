@@ -238,35 +238,41 @@ def generate_dm(text: str, size: int = 300, gost_code: str = None) -> Image.Imag
 
 def generate_code128(text: str, size: int = 300, human_text: str = "", gost_code: str = None) -> Image.Image:
     """
-    Generate Code 128 barcode with improved quality and scanning compatibility
+    Generate Code 128 barcode with dynamic width scaling based on text length
     """
     try:
         import barcode
         from barcode.writer import ImageWriter
         Code128 = barcode.get_barcode_class('code128')
         
+        # Calculate dynamic width based on text length
+        text_length = len(text)
+        
+        # Base width starts small and scales with character count
+        base_width = max(0.15, 0.1 + (text_length * 0.01))  # Start at 0.1mm, scale by 0.01mm per char
+        
+        # Dynamic height calculation
         if gost_code:
             try:
                 gost_dim = get_dimension_by_code(gost_code)
                 actual_height = int(gost_dim.mm_height * 300 / 25.4)
-                internal_size = actual_height * 4  # Increased scale for better quality
             except ValueError:
-                gost_code = None
-        
-        if not gost_code:
-            dpi_scale_factor = 4  # Increased from 3 to 4 for better scanning
-            internal_size = size * dpi_scale_factor
+                actual_height = size
+        else:
             actual_height = size
         
         code = Code128(text, writer=ImageWriter())
         bio = io.BytesIO()
         
-        # Improved barcode generation options for better scanning
-        # Calculate proper dimensions for Code128
-        bar_height = size * 0.7  # 70% of size for bars
+        # Calculate dynamic width for longer text
+        # Use proportional scaling where width increases with character count
+        calculated_width = text_length * base_width
+        final_width = max(calculated_width, size)  # Ensure minimum width
+        
+        bar_height = actual_height * 0.7  # 70% of height for bars
         options = {
             "module_height": bar_height / 31.5,  # Convert to mm
-            "module_width": 0.33,  # Standard module width
+            "module_width": base_width,  # Dynamic width based on text length
             "quiet_zone": 6.0,  # Larger quiet zone for better scanning
             "font_size": 0,
             "text_distance": 5.0,
@@ -278,8 +284,17 @@ def generate_code128(text: str, size: int = 300, human_text: str = "", gost_code
         bio.seek(0)
         img = Image.open(bio).convert("RGB")
         
-        # Scale to target size maintaining aspect ratio
-        final_img = _scale_preserve_aspect_height(img, size)
+        # For longer text, allow the image to scale proportionally rather than forcing aspect ratio
+        if text_length > 50:  # For longer text, preserve natural proportions
+            if img.height < actual_height:
+                scale_factor = actual_height / img.height
+                new_width = int(img.width * scale_factor)
+                final_img = img.resize((new_width, actual_height), Image.LANCZOS)
+            else:
+                final_img = img
+        else:
+            # For shorter text, use existing scaling
+            final_img = _scale_preserve_aspect_height(img, actual_height)
         
         # Add human-readable text if provided
         if human_text:
@@ -293,38 +308,38 @@ def generate_code128(text: str, size: int = 300, human_text: str = "", gost_code
 
 def generate_pdf417(text: str, size: int = 300, human_text: str = "", gost_code: str = None) -> Image.Image:
     """
-    Generate PDF417 barcode with improved quality and scanning compatibility
+    Generate PDF417 barcode with dynamic width scaling based on text length
     """
     try:
         import pdf417gen
+        
+        text_length = len(text)
         
         if gost_code:
             try:
                 gost_dim = get_dimension_by_code(gost_code)
                 actual_height = int(gost_dim.mm_height * 300 / 25.4)
-                internal_size = actual_height * 4  # Increased scale
-                dpi_pixels_per_mm = 31.5
-                target_height_mm = actual_height / dpi_pixels_per_mm
             except ValueError:
-                gost_code = None
-        
-        if not gost_code:
-            dpi_scale_factor = 4  # Increased from 3 for better quality
-            internal_size = size * dpi_scale_factor
-            actual_height = size
-            dpi_pixels_per_mm = 31.5
-            target_height_mm = size / dpi_pixels_per_mm
-        
-        # PDF417 is known to have scanning issues with some libraries
-        # Use minimal parameters that work best with pyzbar
-        
-        # For small text, use fewer columns
-        if len(text) <= 10:
-            columns = 3
-        elif len(text) <= 20:
-            columns = 4
+                actual_height = size
         else:
+            actual_height = size
+        
+        # Dynamic column calculation for width scaling - more columns = wider barcode
+        if text_length <= 10:
+            columns = 2  # Narrow for very short text
+        elif text_length <= 30:
+            columns = 3
+        elif text_length <= 60:
+            columns = 4  
+        elif text_length <= 100:
+            columns = 5
+        elif text_length <= 150:
             columns = 6
+        elif text_length <= 250:
+            columns = 7
+        else:
+            # For very long text, scale columns proportionally for wider barcodes
+            columns = min(15, max(8, int(text_length / 35)))
             
         codes = pdf417gen.encode(
             text, 
@@ -332,27 +347,40 @@ def generate_pdf417(text: str, size: int = 300, human_text: str = "", gost_code:
             security_level=1  # Lower security level for better compatibility
         )
         
-        # Use scale that produces good scanning results
-        # Based on testing, scale=8 seems to work better
-        scale = 8
+        # Dynamic scaling based on text length - start smaller for short text
+        if text_length <= 50:
+            scale = max(4, int(6 - text_length * 0.04))  # Scale down for short text
+        elif text_length <= 200:
+            scale = 6
+        else:
+            # For longer text, use smaller scale to allow natural width expansion  
+            scale = max(4, int(8 - text_length * 0.005))
+            
         img = pdf417gen.render_image(codes, scale=scale, ratio=3)
         img = img.convert("RGB")
         
-        # Don't over-scale - keep original proportions
-        if img.height < size:
-            # Scale up to meet minimum height
-            scale_factor = size / img.height
-            new_width = int(img.width * scale_factor)
-            final_img = img.resize((new_width, size), Image.LANCZOS)
+        # Dynamic width handling - allow width to grow naturally with text length
+        if text_length > 100:
+            # For longer text, preserve natural proportions to show full width
+            if img.height < actual_height:
+                scale_factor = actual_height / img.height
+                new_width = int(img.width * scale_factor)
+                final_img = img.resize((new_width, actual_height), Image.LANCZOS)
+            else:
+                final_img = img
         else:
-            final_img = img
+            # For shorter text, maintain minimum sizing
+            if img.height < actual_height:
+                scale_factor = actual_height / img.height
+                new_width = int(img.width * scale_factor)
+                final_img = img.resize((new_width, actual_height), Image.LANCZOS)
+            else:
+                final_img = img
         
         # Add human-readable text if provided
         if human_text:
             final_img = _add_text_below_barcode(final_img, human_text)
         
-        # Note: PDF417 scanning may still fail due to library limitations
-        # This is a known issue with pyzbar and PDF417 format compatibility
         return final_img
         
     except Exception as e:
