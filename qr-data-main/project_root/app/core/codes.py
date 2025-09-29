@@ -409,17 +409,29 @@ def generate_aztec(text: str, size: int = 300, gost_code: str = None) -> Image.I
         aztec = aztec_code_generator.AztecCode(text)
         matrix = aztec.matrix
         
-        # Convert matrix to PIL Image
+        # Convert matrix to PIL Image with proper handling
         import numpy as np
         
-        # Convert boolean matrix to uint8
-        img_array = np.array(matrix, dtype=np.uint8) * 255
+        # Convert boolean matrix to uint8 (True=black, False=white)
+        # Aztec codes have black modules on white background
+        img_array = np.array(matrix, dtype=np.uint8)
+        # Invert: False (0) -> white (255), True (1) -> black (0)  
+        img_array = (1 - img_array) * 255
         
         # Create PIL Image
         aztec_img = Image.fromarray(img_array, mode='L').convert('RGB')
         
+        # Add quiet zone (border) - Aztec codes require quiet zone
+        border_size = max(4, actual_size // 20)  # At least 4 pixels or 5% of size
+        bordered_size = aztec_img.size[0] + 2 * border_size
+        bordered_img = Image.new('RGB', (bordered_size, bordered_size), 'white')
+        bordered_img.paste(aztec_img, (border_size, border_size))
+        
         # Scale to desired size using nearest neighbor for crisp edges
-        aztec_img = _scale_nearest_exact(aztec_img, actual_size)
+        if bordered_img.size[0] != actual_size:
+            aztec_img = bordered_img.resize((actual_size, actual_size), Image.NEAREST)
+        else:
+            aztec_img = bordered_img
         
         # Enhance for better scanning
         return _enhance_contrast(aztec_img)
