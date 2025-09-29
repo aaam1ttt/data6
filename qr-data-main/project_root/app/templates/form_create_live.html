@@ -47,14 +47,12 @@
 
 
 
-  <label id="editToggleLabel" style="display:flex;align-items:center;gap:8px; margin-top:8px; cursor:pointer; user-select:none; padding:8px 12px; border-radius:8px; background-color:#f8fafc; border:2px solid #e2e8f0; transition:all 0.3s ease;">
+  <label id="editToggleLabel" style="display:flex;align-items:center;gap:6px; margin-top:8px; cursor:pointer; user-select:none;">
     <input type="checkbox" id="allowEdit" checked style="display:none;">
-    <div style="display:flex;align-items:center;gap:8px;">
-      <div id="toggleCheckbox" style="width:20px; height:20px; border:2px solid #3b82f6; border-radius:4px; display:flex; align-items:center; justify-content:center; background-color:white; transition:all 0.3s ease;">
-        <span id="checkmark" style="color:#3b82f6; font-size:14px; font-weight:bold;">✓</span>
-      </div>
-      <span style="font-weight:500; color:#374151;">Разрешить редактирование</span>
+    <div id="toggleCheckbox" style="width:16px; height:16px; border:2px solid #10b981; border-radius:3px; display:flex; align-items:center; justify-content:center; background-color:white; transition:all 0.2s ease;">
+      <span id="checkmark" style="color:#10b981; font-size:12px; font-weight:bold;">✓</span>
     </div>
+    <span style="font-size:14px; color:#374151;">Разрешить редактирование</span>
   </label>
 
   <div class="toolbar" style="display:flex; gap:8px; align-items:center; margin-top:10px; flex-wrap:wrap;">
@@ -724,22 +722,20 @@
   function updateToggleStyle() {
     const isChecked = allowEdit.checked;
     if (isChecked) {
-      toggleCheckbox.style.backgroundColor = '#3b82f6';
-      toggleCheckbox.style.borderColor = '#3b82f6';
-      checkmark.style.color = 'white';
-      checkmark.style.display = 'block';
-      editToggleLabel.style.backgroundColor = '#eff6ff';
-      editToggleLabel.style.borderColor = '#3b82f6';
-    } else {
       toggleCheckbox.style.backgroundColor = 'white';
+      toggleCheckbox.style.borderColor = '#10b981';
+      checkmark.style.color = '#10b981';
+      checkmark.textContent = '✓';
+    } else {
+      toggleCheckbox.style.backgroundColor = '#f3f4f6';
       toggleCheckbox.style.borderColor = '#d1d5db';
-      checkmark.style.display = 'none';
-      editToggleLabel.style.backgroundColor = '#f9fafb';
-      editToggleLabel.style.borderColor = '#d1d5db';
+      checkmark.style.color = 'transparent';
+      checkmark.textContent = '';
     }
   }
   
-  editToggleLabel.addEventListener('click', () => {
+  editToggleLabel.addEventListener('click', (e) => {
+    e.preventDefault();
     allowEdit.checked = !allowEdit.checked;
     updateToggleStyle();
     

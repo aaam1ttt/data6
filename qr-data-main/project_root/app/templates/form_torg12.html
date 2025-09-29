@@ -48,10 +48,12 @@
 
     <div style="display:flex;gap:8px;margin-top:12px;align-items:center;flex-wrap:wrap;">
       <button class="btn primary" type="submit" id="submitBtn">Сформировать</button>
-      <label style="display:flex;align-items:center;gap:6px;" id="editToggleLabel">
-        <input type="checkbox" id="readonlyToggle" style="width:auto;"> 
-        <span id="toggleText">Заблокировать редактирование</span>
-        <span id="toggleIcon" style="color: #10b981;">✓</span>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;" id="editToggleLabel">
+        <input type="checkbox" id="readonlyToggle" style="display:none;"> 
+        <div id="customCheckbox" style="width:16px;height:16px;border:2px solid #10b981;border-radius:3px;display:flex;align-items:center;justify-content:center;background-color:white;transition:all 0.2s ease;">
+          <span id="checkmark" style="color:#10b981;font-size:12px;font-weight:bold;">✓</span>
+        </div>
+        <span id="toggleText" style="font-size:14px;color:#374151;">Заблокировать редактирование</span>
       </label>
     </div>
   </form>
@@ -196,14 +198,26 @@
   const typeSelect = document.getElementById('t_type');
   const sizeSelect = document.getElementById('t_size');
   
+  const customCheckbox = document.getElementById('customCheckbox');
+  const checkmark = document.getElementById('checkmark');
+  
+  // Handle checkbox click on label
+  document.getElementById('editToggleLabel').addEventListener('click', e => {
+    e.preventDefault();
+    readonlyToggle.checked = !readonlyToggle.checked;
+    readonlyToggle.dispatchEvent(new Event('change'));
+  });
+  
   readonlyToggle.addEventListener('change', e => {
     const isReadonly = e.target.checked;
     inputs.forEach(i => i.readOnly = isReadonly);
     
     if (isReadonly) {
       toggleText.textContent = 'Разрешить редактирование';
-      toggleIcon.textContent = '🔓';
-      toggleIcon.style.color = '#3b82f6';
+      customCheckbox.style.borderColor = '#3b82f6';
+      customCheckbox.style.backgroundColor = '#3b82f6';
+      checkmark.style.color = 'white';
+      checkmark.textContent = '🔓';
       // Hide code type and size selects when readonly
       typeSelect.style.display = 'none';
       sizeSelect.style.display = 'none';
@@ -211,8 +225,10 @@
       sizeSelect.parentElement.style.display = 'none';
     } else {
       toggleText.textContent = 'Заблокировать редактирование';
-      toggleIcon.textContent = '✓';
-      toggleIcon.style.color = '#10b981';
+      customCheckbox.style.borderColor = '#10b981';
+      customCheckbox.style.backgroundColor = 'white';
+      checkmark.style.color = '#10b981';
+      checkmark.textContent = '✓';
       // Show code type and size selects when editable
       typeSelect.style.display = 'block';
       sizeSelect.style.display = 'block';
