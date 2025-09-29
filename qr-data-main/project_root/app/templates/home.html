@@ -1,31 +1,29 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="card">
-  <h2>Главная</h2>
+  <div class="header-box">
+    <h2>Главная</h2>
+  </div>
   {% if session.get('user') %}
     <p>Авторизован: <b>{{ session['user']['username'] }}</b>.</p>
-
-    <div class="hero-actions">
-      <!-- Сканирование -->
-      <a href="{{ url_for('scan.scan_page') }}" class="square">
-        <div class="imgbox">
-          <img src="{{ url_for('static', filename='animations/scan.gif') }}" alt="scan" loading="lazy">
-        </div>
-        <div class="btn primary">Сканировать</div>
-      </a>
-
-      <!-- Создание кода -->
-      <a href="{{ url_for('forms.create_free') }}" class="square">
-        <div class="imgbox">
-          <img src="{{ url_for('static', filename='animations/create.gif') }}" alt="create" loading="lazy">
-        </div>
-        <div class="btn ok">Создать код</div>
-      </a>
-    </div>
-
-  {% else %}
-    <p>Войдите, чтобы продолжить.</p>
-    <p><a class="btn primary" href="{{ url_for('auth.login') }}">Войти</a></p>
   {% endif %}
+
+  <div class="hero-actions">
+    <!-- Сканирование -->
+    <a href="{% if session.get('user') %}{{ url_for('scan.scan_page') }}{% else %}{{ url_for('auth.login') }}{% endif %}" class="square">
+      <div class="imgbox">
+        <img src="{{ url_for('static', filename='animations/scan.gif') }}" alt="scan" loading="lazy">
+      </div>
+      <div class="btn primary">Сканировать</div>
+    </a>
+
+    <!-- Создание кода -->
+    <a href="{% if session.get('user') %}{{ url_for('forms.create_free') }}{% else %}{{ url_for('auth.login') }}{% endif %}" class="square">
+      <div class="imgbox">
+        <img src="{{ url_for('static', filename='animations/create.gif') }}" alt="create" loading="lazy">
+      </div>
+      <div class="btn ok">Создать код</div>
+    </a>
+  </div>
 </div>
 {% endblock %}

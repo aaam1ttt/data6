@@ -155,6 +155,73 @@
   background:white;           /* White background for QR code */
   padding:8px;               /* Minimal padding for the QR code itself */
 }
+
+/* === Header Box Styling === */
+.header-box {
+  border: 2px solid #3b82f6;
+  border-radius: 12px;
+  padding: 16px 24px;
+  margin: 0 0 20px 0;
+  background: linear-gradient(135deg, rgba(59,130,246,0.1) 0%, rgba(59,130,246,0.05) 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.header-box::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%);
+  animation: header-shine 3s ease-in-out infinite;
+}
+
+@keyframes header-shine {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.header-box h1,
+.header-box h2,
+.header-box h3 {
+  margin: 0;
+  color: #e6e6e6;
+  text-align: center;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+/* === Better Toggle Button === */
+#editToggleLabel {
+  background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+  border: 2px solid #3b82f6;
+  border-radius: 12px;
+  padding: 8px 16px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  user-select: none;
+}
+
+#editToggleLabel:hover {
+  background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
+  border-color: #60a5fa;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+#toggleIcon {
+  font-size: 18px;
+  margin-left: 4px;
+  transition: all 0.3s ease;
+}
+
+#editToggleLabel input[type="checkbox"] {
+  display: none;
+}
+}
   </style>
   <script src="{{ url_for('static', filename='print-fix.js') }}"></script>
 </head>

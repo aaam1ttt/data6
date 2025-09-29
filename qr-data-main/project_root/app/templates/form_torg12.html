@@ -3,8 +3,10 @@
 <div class="card" style="max-width:980px;margin:0 auto;">
 
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-    <a class="btn" href="{{ url_for('forms.create_free') }}">← Назад</a>
-    <h2>ТОРГ-12</h2>
+    <a class="btn" href="{% if request.args.get('from_scan') %}{{ url_for('scan.scan_page') }}{% else %}{{ url_for('forms.create_free') }}{% endif %}">← Назад</a>
+    <div class="header-box" style="flex: 1;">
+      <h2>ТОРГ-12</h2>
+    </div>
   </div>
 
   {% if not result_image %}
@@ -45,8 +47,12 @@
     <div class="counter" id="cnt">Осталось: 0 символов</div>
 
     <div style="display:flex;gap:8px;margin-top:12px;align-items:center;flex-wrap:wrap;">
-      <button class="btn primary" type="submit">Сформировать</button>
-      <label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" id="readonlyToggle" style="width:auto;"> Заблокировать редактирование</label>
+      <button class="btn primary" type="submit" id="submitBtn">Сформировать</button>
+      <label style="display:flex;align-items:center;gap:6px;" id="editToggleLabel">
+        <input type="checkbox" id="readonlyToggle" style="width:auto;"> 
+        <span id="toggleText">Заблокировать редактирование</span>
+        <span id="toggleIcon" style="color: #10b981;">✓</span>
+      </label>
     </div>
   </form>
   {% endif %}
@@ -182,9 +188,44 @@
   inputs.forEach(i=>i.addEventListener('input',updateCounter));
   updateCounter();
 
-  document.getElementById('readonlyToggle').addEventListener('change',e=>{
-    inputs.forEach(i=>i.readOnly=e.target.checked);
+  // Handle readonly toggle with better styling and visibility
+  const readonlyToggle = document.getElementById('readonlyToggle');
+  const toggleText = document.getElementById('toggleText');
+  const toggleIcon = document.getElementById('toggleIcon');
+  const submitBtn = document.getElementById('submitBtn');
+  const typeSelect = document.getElementById('t_type');
+  const sizeSelect = document.getElementById('t_size');
+  
+  readonlyToggle.addEventListener('change', e => {
+    const isReadonly = e.target.checked;
+    inputs.forEach(i => i.readOnly = isReadonly);
+    
+    if (isReadonly) {
+      toggleText.textContent = 'Разрешить редактирование';
+      toggleIcon.textContent = '🔓';
+      toggleIcon.style.color = '#3b82f6';
+      // Hide code type and size selects when readonly
+      typeSelect.style.display = 'none';
+      sizeSelect.style.display = 'none';
+      typeSelect.parentElement.style.display = 'none';
+      sizeSelect.parentElement.style.display = 'none';
+    } else {
+      toggleText.textContent = 'Заблокировать редактирование';
+      toggleIcon.textContent = '✓';
+      toggleIcon.style.color = '#10b981';
+      // Show code type and size selects when editable
+      typeSelect.style.display = 'block';
+      sizeSelect.style.display = 'block';
+      typeSelect.parentElement.style.display = 'block';
+      sizeSelect.parentElement.style.display = 'block';
+    }
   });
+  
+  // Check if opened from scan with readonly mode
+  if (new URLSearchParams(window.location.search).get('from_scan') === '1') {
+    readonlyToggle.checked = true;
+    readonlyToggle.dispatchEvent(new Event('change'));
+  }
   {% endif %}
 
   {% if result_image %}

@@ -2,7 +2,9 @@
 {% block content %}
 <div class="card">
   <div style="display:flex;justify-content:space-between;align-items:center;">
+    <div class="header-box">
     <h2>История</h2>
+  </div>
     <form method="post" action="{{ url_for('main.history_clear') }}" onsubmit="return confirm('Очистить всю историю?');">
       <button class="btn danger" type="submit">Очистить историю</button>
     </form>

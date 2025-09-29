@@ -2,9 +2,11 @@
 {% block content %}
 <div class="card" style="max-width: 1100px; margin: 0 auto;">
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-  <a class="btn" href="{{ url_for('forms.create_free') }}">← Назад</a>
-  <h2>Транспортная маркировка</h2>
-</div>
+    <a class="btn" href="{% if request.args.get('from_scan') %}{{ url_for('scan.scan_page') }}{% else %}{{ url_for('forms.create_free') }}{% endif %}">← Назад</a>
+    <div class="header-box" style="flex: 1;">
+      <h2>Транспортная маркировка</h2>
+    </div>
+  </div>
 
   {% if not result_image %}
   <form id="f" method="post" class="grid" style="margin-top:12px;">

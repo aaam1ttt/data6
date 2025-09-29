@@ -1,7 +1,9 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="card" style="max-width:980px;margin:0 auto;">
-  <h2 class="center">Создать код</h2>
+  <div class="header-box">
+    <h2>Создать код</h2>
+  </div>
 
   <div id="alerts"></div>
 
@@ -35,7 +37,12 @@
 
   <label style="margin-top:12px;">Текст
     <textarea id="textInput" rows="5" class="autogrow"
-              style="width:100%; background:#0b1220; color:#e6e6e6; border:1px solid #374151; border-radius:8px; padding:10px; resize:none; overflow:hidden; white-space:pre-wrap; line-height:1.4;"></textarea>
+              style="width:100%; background:#0b1220; color:#e6e6e6; border:1px solid #374151; border-radius:8px; padding:10px; resize:none; overflow:hidden; white-space:pre-wrap; line-height:1.4;" maxlength="2000"></textarea>
+  </label>
+  
+  <label id="textUnderLabel" style="margin-top:12px; display:none;">Текст под кодом
+    <input type="text" id="textUnderInput" placeholder="Дополнительный текст под кодом" maxlength="100"
+           style="width:100%; background:#0b1220; color:#e6e6e6; border:1px solid #374151; border-radius:8px; padding:10px;">
   </label>
 
 
@@ -289,11 +296,23 @@
     return !over;
   }
 
+  function toggleTextUnderField() {
+    const t = codeType.value;
+    const textUnderLabel = document.getElementById('textUnderLabel');
+    if (t === 'C128' || t === 'PDF417') {
+      textUnderLabel.style.display = 'block';
+    } else {
+      textUnderLabel.style.display = 'none';
+      document.getElementById('textUnderInput').value = '';
+    }
+  }
+
   function clearAll(){
     if (controller){ controller.abort(); controller = null; }
     if (debounceId){ clearTimeout(debounceId); debounceId=null; }
     clearAlert();
     textInput.value = '';
+    document.getElementById('textUnderInput').value = '';
 
     autoGrow(textInput);
     previewImg.src = '';
@@ -311,7 +330,7 @@
   function triggerGenerate(){
     const text = (textInput.value || '').trim();
     const size = parseInt(sizePreset.value || '300');
-    const humanText = '';
+    const textUnder = document.getElementById('textUnderInput').value || '';
     if (!text){
       lastDataUrl = null;
       previewWrap.style.display = 'none';
@@ -329,7 +348,7 @@
     fetch('{{ url_for("forms.api_generate_code") }}', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, code_type: codeType.value, size, human_text: humanText }),
+      body: JSON.stringify({ text, code_type: codeType.value, size, text_under: textUnder }),
       signal: controller.signal
     })
     .then(r => r.json().catch(() => ({ ok:false, error:'Некорректный ответ сервера' })))
@@ -682,11 +701,12 @@
     refreshButtons();
   }
 
-  codeType.addEventListener('change', () => { fillSizePresets(); toggleHumanTextField(); updateLimitInfo(); debouncedGenerate(); });
+  codeType.addEventListener('change', () => { fillSizePresets(); toggleTextUnderField(); updateLimitInfo(); debouncedGenerate(); });
   sizePreset.addEventListener('change', () => { updateLimitInfo(); debouncedGenerate(); });
 
   textInput.addEventListener('input', () => { autoGrow(textInput); updateLimitInfo(); debouncedGenerate(); });
   textInput.addEventListener('paste', () => { setTimeout(() => { autoGrow(textInput); updateLimitInfo(); debouncedGenerate(); }, 0); });
+  document.getElementById('textUnderInput').addEventListener('input', debouncedGenerate);
 
 
 
@@ -823,7 +843,7 @@
   openFormsBtn.addEventListener('click', toggleFormsDropdown);
 
   fillSizePresets();
-  toggleHumanTextField();
+  toggleTextUnderField();
   updateLimitInfo();
   autoGrow(textInput);
 })();

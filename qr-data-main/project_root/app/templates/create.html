@@ -1,11 +1,13 @@
 {% extends "base.html" %}
 {% block title %}Создание кода{% endblock %}
 {% block content %}
-<h1>Создать код</h1>
+<div class="header-box">
+  <h1>Создать код</h1>
+</div>
 
 <form method="post" action="{{ url_for('create.make') }}" class="card">
   <label>Текст
-    <textarea name="text" rows="4">{{ request.args.get('prefill','') }}</textarea>
+    <textarea name="text" rows="4" maxlength="2000">{{ request.args.get('prefill','') }}</textarea>
   </label>
 
   <div class="row">
@@ -23,6 +25,12 @@
     </label>
   </div>
 
+  <div id="additional-fields" style="display: none;">
+    <label id="text-under-label">Текст под кодом
+      <input type="text" name="text_under" id="text_under" maxlength="100" placeholder="Дополнительный текст под кодом">
+    </label>
+  </div>
+
   <button class="btn">Сформировать</button>
 </form>
 
@@ -32,4 +40,24 @@
   <img src="{{ url_for('create.file', name=preview_file) }}" alt="code">
 </div>
 {% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const codeTypeSelect = document.querySelector('select[name="code_type"]');
+  const additionalFields = document.getElementById('additional-fields');
+  const textUnderLabel = document.getElementById('text-under-label');
+  
+  function toggleAdditionalFields() {
+    const codeType = codeTypeSelect.value;
+    if (codeType === 'C128' || codeType === 'PDF417') {
+      additionalFields.style.display = 'block';
+    } else {
+      additionalFields.style.display = 'none';
+    }
+  }
+  
+  codeTypeSelect.addEventListener('change', toggleAdditionalFields);
+  toggleAdditionalFields(); // Initial check
+});
+</script>
 {% endblock %}

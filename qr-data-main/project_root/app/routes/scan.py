@@ -80,15 +80,15 @@ def scan_api():
 
     open_url: Optional[str] = None
     if form_type == "torg12":
-        open_url = url_for("forms.form_torg12", q=text)
+        open_url = url_for("forms.form_torg12", q=text, from_scan="1")
     elif form_type == "message":
-        open_url = url_for("forms.form_message", q=text)
+        open_url = url_for("forms.form_message", q=text, from_scan="1")
     elif form_type == "exploitation":
-        open_url = url_for("forms.form_exploitation", q=text)
+        open_url = url_for("forms.form_exploitation", q=text, from_scan="1")
     elif form_type == "transport":
-        open_url = url_for("forms.form_transport", q=text)
+        open_url = url_for("forms.form_transport", q=text, from_scan="1")
     elif form_type == "custom":
-        open_url = url_for("forms.form_custom", q=text, mode="table")
+        open_url = url_for("forms.form_custom", q=text, mode="table", from_scan="1")
 
     return jsonify({
         "ok": True,
