@@ -405,6 +405,19 @@ def generate_aztec(text: str, size: int = 300, gost_code: str = None) -> Image.I
     try:
         import aztec_code_generator
         
+        # Try to encode the text - aztec-code-generator only supports latin-1
+        # Convert to bytes for proper encoding
+        try:
+            text_bytes = text.encode('latin-1')
+        except UnicodeEncodeError:
+            # For non-latin-1 characters, use UTF-8 and try latin-1 fallback
+            text_bytes = text.encode('utf-8', errors='ignore')
+            try:
+                text = text_bytes.decode('latin-1')
+            except:
+                # If that fails, skip this library
+                raise ValueError("Text contains characters not supported by aztec-code-generator")
+        
         # Generate Aztec code matrix
         aztec = aztec_code_generator.AztecCode(text)
         matrix = aztec.matrix
@@ -412,29 +425,34 @@ def generate_aztec(text: str, size: int = 300, gost_code: str = None) -> Image.I
         # Convert matrix to PIL Image with proper handling
         import numpy as np
         
-        # Convert boolean matrix to uint8 (True=black, False=white)
-        # Aztec codes have black modules on white background
+        # Convert to numpy array - aztec-code-generator uses 0=white, 1=black
         img_array = np.array(matrix, dtype=np.uint8)
-        # Invert: False (0) -> white (255), True (1) -> black (0)  
+        # Convert to proper image values: 0 -> 255 (white), 1 -> 0 (black)
         img_array = (1 - img_array) * 255
         
-        # Create PIL Image
+        # Create PIL Image from the base matrix
         aztec_img = Image.fromarray(img_array, mode='L').convert('RGB')
         
+        # Calculate scale to reach desired size while maintaining module clarity
+        # Use high internal resolution for better quality
+        module_size = max(12, actual_size // len(matrix))
+        high_res_size = len(matrix) * module_size
+        
+        # Scale up with nearest neighbor for crisp modules
+        aztec_img = aztec_img.resize((high_res_size, high_res_size), Image.NEAREST)
+        
         # Add quiet zone (border) - Aztec codes require quiet zone
-        border_size = max(4, actual_size // 20)  # At least 4 pixels or 5% of size
-        bordered_size = aztec_img.size[0] + 2 * border_size
+        # Minimum 1 module width per Aztec spec
+        border_size = max(module_size * 2, high_res_size // 10)
+        bordered_size = high_res_size + 2 * border_size
         bordered_img = Image.new('RGB', (bordered_size, bordered_size), 'white')
         bordered_img.paste(aztec_img, (border_size, border_size))
         
-        # Scale to desired size using nearest neighbor for crisp edges
-        if bordered_img.size[0] != actual_size:
-            aztec_img = bordered_img.resize((actual_size, actual_size), Image.NEAREST)
-        else:
-            aztec_img = bordered_img
+        # Scale to final size maintaining crisp edges with NEAREST, not LANCZOS
+        # LANCZOS creates antialiasing which makes barcode unreadable
+        final_img = bordered_img.resize((actual_size, actual_size), Image.NEAREST)
         
-        # Enhance for better scanning
-        return _enhance_contrast(aztec_img)
+        return final_img
         
     except ImportError:
         pass  # Try next method
@@ -1022,12 +1040,57 @@ def decode_auto(img: Image.Image) -> List[Dict[str, str]]:
         except Exception:
             pass
     
+    # Try pyzxing (ZXing Java library) - best for Aztec codes
+    if not results:
+        try:
+            from pyzxing import BarCodeReader
+            import numpy as np
+            
+            reader = BarCodeReader()
+            img_array = np.array(img)
+            
+            # Try to decode
+            zx_results = reader.decode_array(img_array)
+            if zx_results and len(zx_results) > 0:
+                for result in zx_results:
+                    # Extract text and type from result dict
+                    decoded_text = result.get('parsed', result.get('raw', ''))
+                    barcode_type = result.get('format', 'unknown')
+                    
+                    # Handle bytes
+                    if isinstance(decoded_text, bytes):
+                        decoded_text = decoded_text.decode('utf-8', errors='ignore')
+                    if isinstance(barcode_type, bytes):
+                        barcode_type = barcode_type.decode('utf-8', errors='ignore')
+                    
+                    # Clean up string representation artifacts
+                    if isinstance(decoded_text, str) and decoded_text.startswith("b'") and decoded_text.endswith("'"):
+                        decoded_text = decoded_text[2:-1]
+                    
+                    # Map type names
+                    type_map = {
+                        'AZTEC': 'AZTEC',
+                        'QR_CODE': 'QR',
+                        'DATA_MATRIX': 'DATAMATRIX',
+                        'PDF_417': 'PDF417',
+                        'CODE_128': 'CODE128'
+                    }
+                    code_type = type_map.get(barcode_type, barcode_type)
+                    
+                    results.append({"text": decoded_text, "type": code_type})
+                
+        except ImportError:
+            pass
+        except Exception:
+            pass
+    
     # Try zxing-cpp if available (better for some formats)
     if not results:
         try:
             import zxingcpp
             
             # Convert to numpy array
+            import numpy as np
             img_array = np.array(img)
             if len(img_array.shape) == 3:
                 # Convert RGB to grayscale
