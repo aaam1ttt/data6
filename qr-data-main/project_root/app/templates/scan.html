@@ -91,14 +91,9 @@
       <button id="copyBtn" class="btn" type="button">Копировать</button>
       <button id="clearBtn" class="btn danger" type="button">Очистить</button>
       <button id="cancelScanMainBtn" class="btn danger" type="button" style="display:none;">✕ Отменить сканирование</button>
-      <a id="openFormBtn" class="btn" href="#" style="display:none;">Открыть форму</a>
-      <button id="openExcelBtn" class="btn ok" type="button" style="display:none;">Открыть в Excel</button>
+      <a id="openFormBtn" class="btn ok" href="#" style="display:none;">Открыть форму</a>
+      <button id="openExcelBtn" class="btn" type="button" style="display:none;">Сохранить в Excel</button>
     </div>
-
-    <form id="excelForm" method="post" action="{{ url_for('scan.export_excel') }}" style="display:none;">
-      <input type="hidden" name="text" id="excelText">
-      <input type="hidden" name="form_type" id="excelFormType">
-    </form>
   </div>
 </div>
 
@@ -120,10 +115,9 @@
   const openFormBtn=document.getElementById('openFormBtn');
   const openExcelBtn=document.getElementById('openExcelBtn');
   const cancelScanMainBtn=document.getElementById('cancelScanMainBtn');
-  const excelForm=document.getElementById('excelForm');
-  const excelText=document.getElementById('excelText');
-  const excelFormType=document.getElementById('excelFormType');
   const TABULAR_FORMS=new Set(['torg12','message','exploitation','transport','custom']);
+  
+  let currentExcelData={text:'',form_type:''};
   
   // Камера элементы
   const cameraBtn=document.getElementById('cameraBtn');
@@ -411,7 +405,7 @@
         if(!data||!data.ok){ showAlert('error',(data&&data.error)?data.error:'Ошибка сканирования'); resultCard.style.display='none'; return; }
         codeTypeEl.textContent=`Тип кода: ${data.code_type||'—'}`; resultText.value=data.text||''; resultCard.style.display='block'; autoGrow(resultText);
         if(data.open_url){ openFormBtn.href=data.open_url; openFormBtn.style.display='inline-block'; } else { openFormBtn.style.display='none'; }
-        if(data.form_type && TABULAR_FORMS.has(data.form_type)){ excelText.value=data.text||''; excelFormType.value=data.form_type; openExcelBtn.style.display='inline-block'; } else { openExcelBtn.style.display='none'; }
+        if(data.form_type && TABULAR_FORMS.has(data.form_type)){ currentExcelData.text=data.text||''; currentExcelData.form_type=data.form_type; openExcelBtn.style.display='inline-block'; } else { openExcelBtn.style.display='none'; }
       })
       .catch(err=>{ if(currentTimeoutId){ clearTimeout(currentTimeoutId); currentTimeoutId=null; } currentController=null; setScanning(false); cancelScanMainBtn.style.display='none'; if(err&&err.name==='AbortError') return; showAlert('error','Ошибка сети при сканировании'); });
   }
@@ -426,7 +420,78 @@
   copyBtn.addEventListener('click',async ()=>{ try{ await navigator.clipboard.writeText(resultText.value||''); showAlert('success','Скопировано'); setTimeout(clearAlert,1500);}catch{ showAlert('error','Не удалось скопировать'); } });
   clearBtn.addEventListener('click',()=>resetUI());
   cancelScanMainBtn.addEventListener('click',cancelMainScan);
-  openExcelBtn.addEventListener('click',()=>excelForm.submit());
+  openExcelBtn.addEventListener('click',async ()=>{
+    if(!currentExcelData.text || !currentExcelData.form_type) return;
+    
+    const defaultFilename=getDefaultFilename(currentExcelData.form_type);
+    
+    try{
+      const formData=new FormData();
+      formData.append('text',currentExcelData.text);
+      formData.append('form_type',currentExcelData.form_type);
+      
+      const response=await fetch('{{ url_for("scan.export_excel") }}',{
+        method:'POST',
+        body:formData
+      });
+      
+      if(!response.ok){
+        const errorData=await response.json().catch(()=>null);
+        showAlert('error',(errorData&&errorData.error)?errorData.error:'Ошибка при создании Excel файла');
+        return;
+      }
+      
+      const blob=await response.blob();
+      
+      if(window.showSaveFilePicker){
+        try{
+          const handle=await window.showSaveFilePicker({
+            suggestedName:defaultFilename,
+            types:[{
+              description:'Excel файлы',
+              accept:{'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':['.xlsx']}
+            }]
+          });
+          const writable=await handle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+          showAlert('success','Файл успешно сохранен');
+          setTimeout(clearAlert,2000);
+        }catch(err){
+          if(err.name!=='AbortError'){
+            fallbackDownload(blob,defaultFilename);
+          }
+        }
+      }else{
+        fallbackDownload(blob,defaultFilename);
+      }
+    }catch(err){
+      showAlert('error','Ошибка при сохранении файла: '+err.message);
+    }
+  });
+  
+  function getDefaultFilename(formType){
+    const filenames={
+      'torg12':'torg12.xlsx',
+      'message':'message.xlsx',
+      'exploitation':'exploitation.xlsx',
+      'transport':'transport.xlsx',
+      'custom':'custom.xlsx'
+    };
+    return filenames[formType]||'export.xlsx';
+  }
+  
+  function fallbackDownload(blob,filename){
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+  
   window.addEventListener('resize',()=>autoGrow(resultText));
 
   // Обработчики камеры

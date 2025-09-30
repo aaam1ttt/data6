@@ -129,8 +129,7 @@ def export_excel():
     text = request.form.get("text") or ""
     form_type = request.form.get("form_type") or ""
     if not text or form_type not in {"torg12","message","exploitation","transport","custom"}:
-        flash("Нет табличной формы для экспорта", "error")
-        return redirect(url_for("scan.scan_page"))
+        return jsonify({"ok": False, "error": "Нет табличной формы для экспорта"}), 400
 
     wb = openpyxl.Workbook()
     ws = wb.active
