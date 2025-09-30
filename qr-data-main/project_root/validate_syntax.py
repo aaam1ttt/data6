@@ -18,15 +18,15 @@ for filepath in files_to_check:
     full_path = os.path.join(os.path.dirname(__file__), filepath)
     try:
         py_compile.compile(full_path, doraise=True)
-        print(f"✅ {filepath}: OK")
+        print(f"[OK] {filepath}")
     except py_compile.PyCompileError as e:
-        print(f"❌ {filepath}: SYNTAX ERROR")
+        print(f"[ERROR] {filepath}: SYNTAX ERROR")
         print(f"   {e}")
         all_valid = False
 
 if all_valid:
-    print("\n✅ All Python files have valid syntax")
+    print("\n[SUCCESS] All Python files have valid syntax")
     sys.exit(0)
 else:
-    print("\n❌ Some files have syntax errors")
+    print("\n[FAILED] Some files have syntax errors")
     sys.exit(1)
