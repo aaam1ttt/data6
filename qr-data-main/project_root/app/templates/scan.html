@@ -44,7 +44,7 @@
 
   <div id="previewWrap" class="card" style="margin-top:16px; position:relative; display:none; justify-content:center;">
     <div style="width:100%; display:flex; justify-content:center;">
-      <img id="previewImg" alt="preview" style="max-width:100%; max-height:420px; object-fit:contain; border-radius:10px;"/>
+      <img id="previewImg" alt="preview" style="max-width:100%; max-height:210px; min-height:210px; object-fit:contain; border-radius:10px;"/>
     </div>
     <div id="scanOverlay" style="display:none; position:absolute; left:0; right:0; top:0; bottom:0; pointer-events:none; border-radius:10px; overflow:hidden;">
       <div style="position:absolute; left:0; right:0; top:-50%; height:50%;
@@ -148,7 +148,25 @@
     cancelScanMainBtn.style.display='none';
   }
 
-  function clientPreview(file){ const url=URL.createObjectURL(file); previewImg.onload=()=>URL.revokeObjectURL(url); previewImg.src=url; previewWrap.style.display='flex'; }
+  function clientPreview(file){ 
+    const url=URL.createObjectURL(file); 
+    previewImg.onload=()=>{
+      URL.revokeObjectURL(url); 
+      dynamicResize(previewImg);
+    }; 
+    previewImg.src=url; 
+    previewWrap.style.display='flex'; 
+  }
+  
+  function dynamicResize(img){
+    if(img.naturalWidth > 600 || img.naturalHeight > 600){
+      img.style.maxHeight = Math.max(420, img.naturalHeight) + 'px';
+      img.style.minHeight = '210px';
+    } else {
+      img.style.maxHeight = '210px';
+      img.style.minHeight = '210px';
+    }
+  }
 
   // Функции камеры
   function showCameraError(msg){

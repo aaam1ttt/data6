@@ -149,11 +149,14 @@
 }
 .preview img{
   max-width:100%;
+  max-height:210px;
+  min-height:210px;
   height:auto;
   border:2px solid var(--line);  /* Small border around QR code */
   border-radius:8px;
   background:white;           /* White background for QR code */
   padding:8px;               /* Minimal padding for the QR code itself */
+  object-fit:contain;
 }
 
 /* === Header Box Styling === */

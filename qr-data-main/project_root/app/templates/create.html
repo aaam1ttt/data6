@@ -37,7 +37,7 @@
 {% if preview_file %}
 <div class="preview card">
   <h3>Превью</h3>
-  <img src="{{ url_for('create.file', name=preview_file) }}" alt="code">
+  <img id="previewImg" src="{{ url_for('create.file', name=preview_file) }}" alt="code">
 </div>
 {% endif %}
 
@@ -46,6 +46,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const codeTypeSelect = document.querySelector('select[name="code_type"]');
   const additionalFields = document.getElementById('additional-fields');
   const textUnderLabel = document.getElementById('text-under-label');
+  const previewImg = document.getElementById('previewImg');
   
   function toggleAdditionalFields() {
     const codeType = codeTypeSelect.value;
@@ -56,8 +57,27 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
   
+  function dynamicResize(img){
+    if(!img) return;
+    if(img.naturalWidth > 600 || img.naturalHeight > 600){
+      img.style.maxHeight = Math.max(420, img.naturalHeight) + 'px';
+      img.style.minHeight = '210px';
+    } else {
+      img.style.maxHeight = '210px';
+      img.style.minHeight = '210px';
+    }
+  }
+  
   codeTypeSelect.addEventListener('change', toggleAdditionalFields);
   toggleAdditionalFields(); // Initial check
+  
+  if(previewImg){
+    if(previewImg.complete){
+      dynamicResize(previewImg);
+    } else {
+      previewImg.onload = () => dynamicResize(previewImg);
+    }
+  }
 });
 </script>
 {% endblock %}
