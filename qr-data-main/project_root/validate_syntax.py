@@ -5,6 +5,9 @@ import os
 
 files_to_check = [
     'app/routes/scan.py',
+    'app/routes/forms.py',
+    'app/routes/main.py',
+    'app/routes/admin.py',
     'app/__init__.py',
 ]
 

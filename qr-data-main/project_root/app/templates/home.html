@@ -10,7 +10,7 @@
 
   <div class="hero-actions">
     <!-- Сканирование -->
-    <a href="{% if session.get('user') %}{{ url_for('scan.scan_page') }}{% else %}{{ url_for('auth.login') }}{% endif %}" class="square">
+    <a href="{{ url_for('scan.scan_page') }}" class="square">
       <div class="imgbox">
         <img src="{{ url_for('static', filename='animations/scan.gif') }}" alt="scan" loading="lazy">
       </div>
@@ -18,7 +18,7 @@
     </a>
 
     <!-- Создание кода -->
-    <a href="{% if session.get('user') %}{{ url_for('forms.create_free') }}{% else %}{{ url_for('auth.login') }}{% endif %}" class="square">
+    <a href="{{ url_for('forms.create_free') }}" class="square">
       <div class="imgbox">
         <img src="{{ url_for('static', filename='animations/create.gif') }}" alt="create" loading="lazy">
       </div>

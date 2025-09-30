@@ -5,27 +5,6 @@
   <h1>Создать код</h1>
 </div>
 
-{% if not user %}
-<div id="loginPrompt" class="card" style="background:#1a2332; border:2px solid #3b82f6; margin-bottom:16px;">
-  <h3 style="margin-top:0;">Требуется авторизация</h3>
-  <p class="hint">Войдите в систему для создания кодов</p>
-  <form method="post" action="{{ url_for('auth.login') }}" class="grid" style="margin-top:12px;">
-    <input type="hidden" name="next" value="{{ request.path }}">
-    <label>Логин
-      <input name="username" required>
-    </label>
-    <label>Пароль
-      <input name="password" type="password" required>
-    </label>
-    <button class="btn primary" type="submit">Войти</button>
-  </form>
-</div>
-
-<style>
-  form[action="{{ url_for('create.make') }}"], .preview { opacity: 0.3; pointer-events: none; }
-</style>
-{% endif %}
-
 <form method="post" action="{{ url_for('create.make') }}" class="card">
   <label>Текст
     <textarea name="text" rows="4" maxlength="5000">{{ request.args.get('prefill','') }}</textarea>
