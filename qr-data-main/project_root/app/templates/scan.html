@@ -70,8 +70,8 @@
       <button id="copyBtn" class="btn" type="button">Копировать</button>
       <button id="clearBtn" class="btn danger" type="button">Очистить</button>
       <button id="cancelScanMainBtn" class="btn danger" type="button" style="display:none;">✕ Отменить сканирование</button>
-      <a id="openFormBtn" class="btn ok" href="#" style="display:none;">Открыть форму</a>
-      <button id="openExcelBtn" class="btn" type="button" style="display:none;">Открыть в Excel</button>
+      <a id="openFormBtn" class="btn" href="#" style="display:none;">Открыть форму</a>
+      <button id="openExcelBtn" class="btn ok" type="button" style="display:none;">Открыть в Excel</button>
     </div>
 
     <form id="excelForm" method="post" action="{{ url_for('scan.export_excel') }}" style="display:none;">
