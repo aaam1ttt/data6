@@ -173,34 +173,6 @@
   if (window.initPrintSizeControls) {
     window.initPrintSizeControls("{{ code_type or 'QR' }}", {{ size or 300 }}, "{{ encoded }}");
   }
-  document.getElementById('print')?.addEventListener('click', ()=>{
-    const img = document.querySelector('img[alt="code"]').src;
-    
-    // Store current input focus state before opening print window
-    const activeElement = document.activeElement;
-    const allInputs = document.querySelectorAll('input, textarea');
-    
-    const w = window.open('','_blank');
-    w.document.write(`<html><head><title>Печать кода</title><style>html,body{margin:0;padding:0}</style></head><body><img src="${img}" style="max-width:100%;display:block;margin:0 auto;"><script>window.onload=()=>{window.print();setTimeout(()=>window.close(),300)}<\/script></body></html>`);
-    w.document.close();
-    
-    // Restore input functionality after print window operations
-    setTimeout(() => {
-      allInputs.forEach(input => {
-        if (input.parentNode) {
-          // Re-enable input responsiveness
-          input.blur();
-          input.focus();
-          input.blur();
-        }
-      });
-      
-      // Restore original focus if it was on an input
-      if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
-        setTimeout(() => activeElement.focus(), 50);
-      }
-    }, 400);
-  });
   {% endif %}
 })();
 </script>

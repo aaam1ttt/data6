@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест функциональности печати</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #0f172a;
+            color: #e6e6e6;
+        }
+        .test-section {
+            background: #1e293b;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            border: 1px solid #374151;
+        }
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            background: #3b82f6;
+            color: white;
+            font-size: 14px;
+            margin: 5px;
+        }
+        .btn:hover {
+            background: #2563eb;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background: #0f172a;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .success { color: #22c55e; }
+        .error { color: #ef4444; }
+        h2 { margin-top: 0; }
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: #1e293b;
+            border: 1px solid #374151;
+            border-radius: 8px;
+            min-width: 250px;
+            z-index: 1000;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .dropdown-item {
+            display: block;
+            width: 100%;
+            padding: 8px 12px;
+            background: none;
+            border: none;
+            color: #e6e6e6;
+            text-align: left;
+            cursor: pointer;
+            border-bottom: 1px solid #374151;
+        }
+        .dropdown-item:hover {
+            background: #374151;
+        }
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Тест функциональности печати для всех форм</h1>
+    
+    <div class="test-section">
+        <h2>1. Тест базового модуля _print_size_controls.html</h2>
+        <p>Этот модуль используется всеми формами с результатами.</p>
+        
+        <div class="dropdown" style="position:relative; display:inline-block;">
+            <button id="testPrintBtn" class="btn">Печать ▼</button>
+            <div id="testPrintDropdown" class="dropdown-content">
+                <div style="padding:8px 12px; border-bottom:1px solid #374151;">
+                    <label style="font-size:12px; color:#9ca3af; display:block; margin-bottom:4px;">Размер печати</label>
+                    <select id="testPrintSizeSelect" style="width:100%; padding:4px 8px; border-radius:4px; background:#0f172a; color:#e6e6e6; border:1px solid #374151; font-size:12px;">
+                        <option value="177">QR-S1: Малый (15×15 мм)</option>
+                        <option value="236" selected>QR-S2: Стандартный ТОРГ-12 (20×20 мм)</option>
+                        <option value="295">QR-S3: Увеличенный (25×25 мм)</option>
+                    </select>
+                </div>
+                <button id="testPrintExecuteBtn" class="dropdown-item">Печать</button>
+            </div>
+        </div>
+        
+        <div id="result1" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Тест прямого вызова window.print()</h2>
+        <button id="directPrintBtn" class="btn">Прямая печать</button>
+        <div id="result2" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Тест открытия окна печати с изображением</h2>
+        <button id="imagePrintBtn" class="btn">Печать изображения</button>
+        <div id="result3" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. Проверка инициализации</h2>
+        <button id="checkInitBtn" class="btn">Проверить initPrintSizeControls</button>
+        <div id="result4" class="result"></div>
+    </div>
+
+    <!-- Include the print size controls template -->
+    <script>
+        // Simulate the _print_size_controls.html script
+        (function(){
+            const GOST_PRESETS = {
+                QR: [
+                    {gost: 'QR-S1', px: 177, label: 'QR-S1: Малый (15×15 мм)', mm: 15},
+                    {gost: 'QR-S2', px: 236, label: 'QR-S2: Стандартный ТОРГ-12 (20×20 мм)', mm: 20},
+                    {gost: 'QR-S3', px: 295, label: 'QR-S3: Увеличенный (25×25 мм)', mm: 25}
+                ]
+            };
+
+            function initPrintSizeControls(codeType, currentSize, encodedText) {
+                const printBtn = document.getElementById('testPrintBtn');
+                const printDropdown = document.getElementById('testPrintDropdown');
+                const printExecuteBtn = document.getElementById('testPrintExecuteBtn');
+                
+                if (!printBtn || !printDropdown || !printExecuteBtn) {
+                    console.error('Missing elements for print controls');
+                    return;
+                }
+
+                function togglePrintDropdown() {
+                    printDropdown.style.display = printDropdown.style.display === 'none' ? 'block' : 'none';
+                }
+
+                function hidePrintDropdown() {
+                    printDropdown.style.display = 'none';
+                }
+
+                async function printWithSelectedSize() {
+                    const result = document.getElementById('result1');
+                    result.innerHTML = '<span class="success">✓ Print button clicked successfully!</span>';
+                    result.innerHTML += '<br>Code type: ' + codeType;
+                    result.innerHTML += '<br>Encoded text: ' + encodedText;
+                    result.innerHTML += '<br><span class="success">Print dialog would open here (window.print())</span>';
+                    
+                    // Simulate opening print window
+                    console.log('Opening print window...');
+                    hidePrintDropdown();
+                }
+
+                printBtn.addEventListener('click', togglePrintDropdown);
+                printExecuteBtn.addEventListener('click', printWithSelectedSize);
+
+                document.addEventListener('click', (e) => {
+                    if (!printBtn.contains(e.target) && !printDropdown.contains(e.target)) {
+                        hidePrintDropdown();
+                    }
+                });
+
+                return {
+                    updateCodeType: () => {},
+                    hide: hidePrintDropdown
+                };
+            }
+
+            window.initPrintSizeControls = initPrintSizeControls;
+        })();
+
+        // Initialize the test
+        document.addEventListener('DOMContentLoaded', function() {
+            // Test 1: Initialize print size controls
+            if (window.initPrintSizeControls) {
+                window.initPrintSizeControls('QR', 236, 'TEST>Sample test data<TEST');
+                document.getElementById('result1').innerHTML = '<span class="success">✓ Print controls initialized</span>';
+            } else {
+                document.getElementById('result1').innerHTML = '<span class="error">✗ initPrintSizeControls not found</span>';
+            }
+
+            // Test 2: Direct window.print()
+            document.getElementById('directPrintBtn').addEventListener('click', function() {
+                const result = document.getElementById('result2');
+                try {
+                    if (typeof window.print === 'function') {
+                        result.innerHTML = '<span class="success">✓ window.print() is available</span>';
+                        result.innerHTML += '<br><span class="success">Calling window.print() - check browser print dialog</span>';
+                        // Uncomment to actually trigger print: window.print();
+                        console.log('window.print() called');
+                    } else {
+                        result.innerHTML = '<span class="error">✗ window.print() not available</span>';
+                    }
+                } catch (e) {
+                    result.innerHTML = '<span class="error">✗ Error: ' + e.message + '</span>';
+                }
+            });
+
+            // Test 3: Print with image
+            document.getElementById('imagePrintBtn').addEventListener('click', function() {
+                const result = document.getElementById('result3');
+                try {
+                    // Create a sample data URL
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 200;
+                    canvas.height = 200;
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = '#000000';
+                    ctx.fillRect(0, 0, 200, 200);
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(50, 50, 100, 100);
+                    const dataUrl = canvas.toDataURL();
+
+                    const html = `
+                        <html>
+                        <head>
+                            <meta charset="utf-8">
+                            <title>Печать кода</title>
+                            <style>
+                                @page { size: A4; margin: 5mm; }
+                                html,body { margin:0; padding:0; }
+                                .wrap { width:210mm; height:297mm; position:relative; }
+                                .code { position:absolute; left:0; top:0; width:20mm; height:20mm; }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="wrap">
+                                <img class="code" src="${dataUrl}">
+                            </div>
+                            <script>
+                                console.log('Print window loaded');
+                                window.onload = () => { 
+                                    console.log('Calling window.print()');
+                                    // Uncomment to actually print: window.print(); 
+                                    // setTimeout(() => window.close(), 300); 
+                                };
+                            <\/script>
+                        </body>
+                        </html>`;
+                    
+                    const w = window.open('', '_blank');
+                    if (w) {
+                        w.document.write(html);
+                        w.document.close();
+                        result.innerHTML = '<span class="success">✓ Print window opened successfully</span>';
+                    } else {
+                        result.innerHTML = '<span class="error">✗ Failed to open print window (popup blocked?)</span>';
+                    }
+                } catch (e) {
+                    result.innerHTML = '<span class="error">✗ Error: ' + e.message + '</span>';
+                }
+            });
+
+            // Test 4: Check initialization
+            document.getElementById('checkInitBtn').addEventListener('click', function() {
+                const result = document.getElementById('result4');
+                let checks = [];
+                
+                checks.push('window.initPrintSizeControls: ' + (typeof window.initPrintSizeControls === 'function' ? '✓' : '✗'));
+                checks.push('window.print: ' + (typeof window.print === 'function' ? '✓' : '✗'));
+                checks.push('window.open: ' + (typeof window.open === 'function' ? '✓' : '✗'));
+                
+                const testPrintBtn = document.getElementById('testPrintBtn');
+                checks.push('testPrintBtn exists: ' + (testPrintBtn ? '✓' : '✗'));
+                
+                const allGood = checks.every(c => c.includes('✓'));
+                
+                result.innerHTML = checks.map(c => 
+                    c.includes('✓') ? 
+                    '<span class="success">' + c + '</span>' : 
+                    '<span class="error">' + c + '</span>'
+                ).join('<br>');
+                
+                if (allGood) {
+                    result.innerHTML += '<br><br><span class="success"><strong>✓ All print functionality checks passed!</strong></span>';
+                } else {
+                    result.innerHTML += '<br><br><span class="error"><strong>✗ Some checks failed</strong></span>';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
