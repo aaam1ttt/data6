@@ -106,6 +106,23 @@ def too_large(e):
     flash("Файл больше 20 МБ", "error")
     return redirect(url_for("scan.scan_page"))
 
+def _auto_adjust_column_widths(ws):
+    """Автоматическая настройка ширины столбцов на основе содержимого"""
+    for column_cells in ws.columns:
+        max_length = 0
+        column_letter = column_cells[0].column_letter
+        
+        for cell in column_cells:
+            try:
+                cell_value = str(cell.value) if cell.value is not None else ""
+                if len(cell_value) > max_length:
+                    max_length = len(cell_value)
+            except:
+                pass
+        
+        adjusted_width = min(max_length + 2, 100)
+        ws.column_dimensions[column_letter].width = adjusted_width
+
 @bp.route("/export_excel", methods=["POST"])
 def export_excel():
     text = request.form.get("text") or ""
@@ -147,6 +164,8 @@ def export_excel():
         for row in custom_parse_string(text):
             ws.append(row)
         filename = "custom.xlsx"
+
+    _auto_adjust_column_widths(ws)
 
     bio = io.BytesIO()
     wb.save(bio)
