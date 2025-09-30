@@ -545,20 +545,84 @@ def _generate_aztec_improved(text: str, size: int = 300) -> Image.Image:
         matrix = np.ones((matrix_size, matrix_size), dtype=np.uint8) * 255
         center = matrix_size // 2
         
-        # Generate proper Aztec finder pattern (bullseye)
-        _create_aztec_bullseye_pattern(matrix, center)
+        # Generate proper Aztec finder pattern (bullseye) - inline implementation
+        # Aztec bullseye: alternating black/white squares from center outward
+        matrix[center, center] = 255
         
-        # Generate reference grid (timing patterns)
-        _create_aztec_reference_grid(matrix, center, layers)
+        # Ring 1: black (3x3 with white center)
+        for i in range(-1, 2):
+            for j in range(-1, 2):
+                matrix[center + i, center + j] = 0
+        matrix[center, center] = 255
         
-        # Generate data pattern using text hash for reproducible pattern
-        _create_aztec_data_pattern_hash(matrix, text, center, matrix_size)
+        # Ring 2: white (5x5)
+        for i in range(-2, 3):
+            for j in range(-2, 3):
+                if abs(i) == 2 or abs(j) == 2:
+                    matrix[center + i, center + j] = 255
+                    
+        # Ring 3: black (7x7) 
+        for i in range(-3, 4):
+            for j in range(-3, 4):
+                if abs(i) == 3 or abs(j) == 3:
+                    matrix[center + i, center + j] = 0
+                    
+        # Ring 4: white (9x9)
+        for i in range(-4, 5):
+            for j in range(-4, 5):
+                if abs(i) == 4 or abs(j) == 4:
+                    matrix[center + i, center + j] = 255
+                    
+        # Ring 5: black (11x11)
+        for i in range(-5, 6):
+            for j in range(-5, 6):
+                if abs(i) == 5 or abs(j) == 5:
+                    matrix[center + i, center + j] = 0
+        
+        # Generate reference grid (timing patterns) - inline implementation
+        matrix_dim = matrix.shape[0]
+        grid_spacing = max(4, layers)
+        
+        for i in range(0, matrix_dim, grid_spacing):
+            for j in range(0, matrix_dim):
+                if abs(i - center) > 8 and abs(j - center) > 8:
+                    if (i // grid_spacing + j // grid_spacing) % 2 == 0:
+                        matrix[i, j] = 0
+                        
+        for j in range(0, matrix_dim, grid_spacing):
+            for i in range(0, matrix_dim):
+                if abs(i - center) > 8 and abs(j - center) > 8:
+                    if (i // grid_spacing + j // grid_spacing) % 2 == 0:
+                        matrix[i, j] = 0
+        
+        # Generate data pattern using text hash - inline implementation
+        import hashlib
+        text_hash = hashlib.md5(text.encode('utf-8')).hexdigest()
+        
+        # Convert hash to bits and place data pattern
+        hash_int = int(text_hash, 16)
+        bit_string = bin(hash_int)[2:].zfill(128)
+        
+        bit_idx = 0
+        for layer in range(6, min(matrix_dim // 2, 40)):
+            for angle in range(layer * 8):
+                y_offset = int(layer * np.sin(angle * np.pi / (layer * 4)))
+                x_offset = int(layer * np.cos(angle * np.pi / (layer * 4)))
+                
+                y = center + y_offset
+                x = center + x_offset
+                
+                if 0 <= y < matrix_dim and 0 <= x < matrix_dim:
+                    if matrix[y, x] == 255:
+                        if bit_string[bit_idx % len(bit_string)] == '1':
+                            matrix[y, x] = 0
+                        bit_idx += 1
         
         # Convert to PIL Image
         img = Image.fromarray(matrix, mode='L').convert('RGB')
         
         # Add quiet zone (border)
-        border_size = max(4, size // 40)  # At least 4 pixels, or 2.5% of size
+        border_size = max(4, size // 40)
         bordered_size = size + 2 * border_size
         bordered_img = Image.new('RGB', (bordered_size, bordered_size), 'white')
         
@@ -571,6 +635,9 @@ def _generate_aztec_improved(text: str, size: int = 300) -> Image.Image:
         
     except ImportError:
         # If numpy is not available, create simple pattern
+        return _generate_simple_aztec_pattern(text, size)
+    except Exception as e:
+        print(f"Fallback Aztec generation error: {e}")
         return _generate_simple_aztec_pattern(text, size)
 
 def _create_aztec_bullseye_pattern(matrix, center):
