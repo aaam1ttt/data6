@@ -36,7 +36,8 @@ def code_image(filename: str):
 # ----------------- CREATE (live) -----------------
 @bp.route("/create", methods=["GET"])
 def create_free():
-    return render_template("form_create_live.html", title="Создать код")
+    user = session.get("user")
+    return render_template("form_create_live.html", title="Создать код", user=user)
 
 @bp.route("/api_generate", methods=["POST"])
 def api_generate_code():
@@ -412,3 +413,7 @@ def form_custom():
     if not initial_rows:
         initial_rows = [[""]]
     return render_template("form_custom.html", title="Произвольная таблица", mode="table", rows=initial_rows)
+
+@bp.route("/menu", methods=["GET"])
+def menu():
+    return render_template("froms_menu.html", title="Формы")

@@ -11,6 +11,8 @@ def login():
     if request.method == "POST":
         username = (request.form.get("username") or "").strip()
         password = request.form.get("password") or ""
+        next_url = request.form.get("next") or url_for("main.home")
+        
         user = find_user_by_username(username)
         if not user or not verify_password(user["password_hash"], password):
             flash("Неверный логин или пароль", "error")
@@ -30,7 +32,7 @@ def login():
 
         touch_last_login(user["id"])
         session["user"] = {"id": user["id"], "username": user["username"], "is_admin": bool(user["is_admin"])}
-        return redirect(url_for("main.home"))
+        return redirect(next_url)
     return render_template("login.html", title="Вход")
 
 @bp.route("/logout")

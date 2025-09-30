@@ -7,6 +7,27 @@
 
   <div id="alerts"></div>
 
+  {% if not user %}
+  <div id="loginPrompt" class="card" style="background:#1a2332; border:2px solid #3b82f6; margin-bottom:16px;">
+    <h3 style="margin-top:0;">Требуется авторизация</h3>
+    <p class="hint">Войдите в систему для создания кодов</p>
+    <form method="post" action="{{ url_for('auth.login') }}" class="grid" style="margin-top:12px;">
+      <input type="hidden" name="next" value="{{ request.path }}">
+      <label>Логин
+        <input name="username" required>
+      </label>
+      <label>Пароль
+        <input name="password" type="password" required>
+      </label>
+      <button class="btn primary" type="submit">Войти</button>
+    </form>
+  </div>
+
+  <style>
+    #codeType, #sizePreset, #textInput, #textUnderInput, #allowEdit, #formatSelect, #saveBtn, #printBtn, #clearBtn, #openFormsBtn, #impFile, #importBtn, #previewWrap, #tableWrap { opacity: 0.3; pointer-events: none; }
+  </style>
+  {% endif %}
+
   <div class="two" style="margin-top:12px; align-items:end;">
     <label>Тип кода
       <select id="codeType">

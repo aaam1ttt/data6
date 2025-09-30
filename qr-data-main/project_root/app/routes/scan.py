@@ -25,7 +25,8 @@ bp = Blueprint("scan", __name__)
 
 @bp.route("/", methods=["GET"])
 def scan_page():
-    return render_template("scan.html", title="Сканирование")
+    user = session.get("user")
+    return render_template("scan.html", title="Сканирование", user=user)
 
 @bp.route("/upload/<path:filename>")
 def upload_image(filename: str):
