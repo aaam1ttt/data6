@@ -3,7 +3,7 @@
 <div class="card" style="max-width:980px;margin:0 auto;">
 
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-    <a class="btn" href="{% if request.args.get('from_scan') %}{{ url_for('scan.scan_page') }}{% else %}{{ url_for('forms.create_free') }}{% endif %}">← Назад</a>
+    <a class="btn" id="backBtn" href="{% if request.args.get('from_scan') %}{{ url_for('scan.scan_page') }}{% else %}{{ url_for('forms.create_free') }}{% endif %}">← Назад</a>
     <div class="header-box" style="flex: 1;">
       <h2>ТОРГ-12</h2>
     </div>
@@ -194,6 +194,20 @@
     const isLocked = e.target.checked;
     inputs.forEach(i => i.readOnly = isLocked);
   });
+  
+  // Check if opened from scan with readonly mode
+  if (new URLSearchParams(window.location.search).get('from_scan') === '1') {
+    lockEdit.checked = true;
+    lockEdit.dispatchEvent(new Event('change'));
+    
+    // Mark back navigation as returning to scan
+    const backBtn = document.getElementById('backBtn');
+    if (backBtn) {
+      backBtn.addEventListener('click', () => {
+        sessionStorage.setItem('fromFormNavigation', 'true');
+      });
+    }
+  }
   {% endif %}
 
   {% if result_image %}

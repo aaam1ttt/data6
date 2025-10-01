@@ -98,6 +98,10 @@
   
   let currentExcelData={text:'',form_type:''};
   
+  // State preservation tracking
+  const SCAN_STATE_KEY='scanWindowState';
+  const FROM_FORM_KEY='fromFormNavigation';
+  
   // Камера элементы
   const cameraBtn=document.getElementById('cameraBtn');
   const cameraModal=document.getElementById('cameraModal');
@@ -122,11 +126,88 @@
   function clearAlert(){alerts.innerHTML=''}
   function formatSize(b){ if(!b&&b!==0) return '—'; const mb=b/(1024*1024); if(mb>=0.1) return `${mb.toFixed(2)} МБ`; const kb=b/1024; return `${kb.toFixed(0)} КБ`; }
   function setScanning(on){ scanOverlay.style.display=on?'block':'none'; if(on) previewWrap.style.display='flex'; }
+  
+  // State preservation functions
+  function saveScanState(){
+    const state={
+      previewSrc:previewImg.src,
+      text:resultText.value,
+      codeType:codeTypeEl.textContent,
+      fileInfoText:fileInfo.textContent,
+      openFormHref:openFormBtn.href,
+      openFormVisible:openFormBtn.style.display!=='none',
+      openExcelVisible:openExcelBtn.style.display!=='none',
+      excelData:currentExcelData,
+      previewVisible:previewWrap.style.display!=='none',
+      resultVisible:resultCard.style.display!=='none'
+    };
+    sessionStorage.setItem(SCAN_STATE_KEY,JSON.stringify(state));
+  }
+  
+  function restoreScanState(){
+    const stateStr=sessionStorage.getItem(SCAN_STATE_KEY);
+    if(!stateStr) return false;
+    
+    try{
+      const state=JSON.parse(stateStr);
+      if(!state.text) return false;
+      
+      // Restore preview
+      if(state.previewSrc){
+        previewImg.src=state.previewSrc;
+        if(state.previewVisible){
+          previewWrap.style.display='flex';
+          dynamicResize(previewImg);
+        }
+      }
+      
+      // Restore file info
+      if(state.fileInfoText){
+        fileInfo.textContent=state.fileInfoText;
+      }
+      
+      // Restore results
+      resultText.value=state.text;
+      codeTypeEl.textContent=state.codeType||'';
+      autoGrow(resultText);
+      
+      if(state.resultVisible){
+        resultCard.style.display='block';
+      }
+      
+      // Restore buttons
+      if(state.openFormVisible&&state.openFormHref){
+        openFormBtn.href=state.openFormHref;
+        openFormBtn.style.display='inline-block';
+      }
+      
+      if(state.openExcelVisible&&state.excelData){
+        currentExcelData=state.excelData;
+        openExcelBtn.style.display='inline-block';
+      }
+      
+      return true;
+    }catch(e){
+      console.error('Failed to restore scan state:',e);
+      return false;
+    }
+  }
+  
+  function clearScanState(){
+    sessionStorage.removeItem(SCAN_STATE_KEY);
+    sessionStorage.removeItem(FROM_FORM_KEY);
+  }
 
   function resetUI(full=true){
     if(currentController){ currentController.abort(); currentController=null; }
     if(currentTimeoutId){ clearTimeout(currentTimeoutId); currentTimeoutId=null; }
-    if(full){ fileInput.value=''; fileInfo.textContent='Размер: — (макс. 20 МБ)'; previewImg.src=''; previewWrap.style.display='none'; }
+    if(full){ 
+      fileInput.value=''; 
+      fileInfo.textContent='Размер: — (макс. 20 МБ)'; 
+      previewImg.src=''; 
+      previewWrap.style.display='none'; 
+      clearScanState();
+    }
     setScanning(false); resultCard.style.display='none'; openFormBtn.style.display='none'; openExcelBtn.style.display='none'; cancelScanMainBtn.style.display='none'; resultText.value=''; resultText.style.height=''; codeTypeEl.textContent=''; currentExcelData={text:'',form_type:''};
   }
   
@@ -383,6 +464,9 @@
         codeTypeEl.textContent=`Тип кода: ${data.code_type||'—'}`; resultText.value=data.text||''; resultCard.style.display='block'; autoGrow(resultText);
         if(data.open_url){ openFormBtn.href=data.open_url; openFormBtn.style.display='inline-block'; } else { openFormBtn.style.display='none'; }
         if(data.form_type && TABULAR_FORMS.has(data.form_type)){ currentExcelData.text=data.text||''; currentExcelData.form_type=data.form_type; openExcelBtn.style.display='inline-block'; } else { openExcelBtn.style.display='none'; }
+        
+        // Save state after successful scan
+        saveScanState();
       })
       .catch(err=>{ if(currentTimeoutId){ clearTimeout(currentTimeoutId); currentTimeoutId=null; } currentController=null; setScanning(false); cancelScanMainBtn.style.display='none'; if(err&&err.name==='AbortError') return; showAlert('error','Ошибка сети при сканировании'); resultText.value=''; codeTypeEl.textContent=''; });
   }
@@ -478,6 +562,32 @@
   captureBtn.addEventListener('click',captureFromCamera);
   cancelScanBtn.addEventListener('click',cancelScanning);
   stopCameraBtn.addEventListener('click',hideCameraModal);
+  
+  // Handle "открыть форму" button click - mark navigation as from form
+  openFormBtn.addEventListener('click',()=>{
+    sessionStorage.setItem(FROM_FORM_KEY,'true');
+  });
+  
+  // Restore state on page load if returning from form
+  window.addEventListener('DOMContentLoaded',()=>{
+    const fromForm=sessionStorage.getItem(FROM_FORM_KEY);
+    if(fromForm==='true'){
+      sessionStorage.removeItem(FROM_FORM_KEY);
+      restoreScanState();
+    }
+  });
+  
+  // Clear state when navigating away via top menu tabs
+  const topMenuLinks=document.querySelectorAll('.nav a:not(.logout):not(.admin)');
+  topMenuLinks.forEach(link=>{
+    link.addEventListener('click',(e)=>{
+      // Only clear if we're clicking away from scan page
+      const href=link.getAttribute('href');
+      if(href&&!href.includes('scan')){
+        clearScanState();
+      }
+    });
+  });
   
   // Очистка при закрытии страницы
   window.addEventListener('beforeunload',()=>{ stopCamera(); });
