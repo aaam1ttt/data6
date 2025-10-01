@@ -25,7 +25,7 @@
       <tbody>
         {% for r in rows %}
         <tr>
-          <td>{{ r.created_at }}</td>
+          <td>{{ r.created_at | utc_to_moscow }}</td>
           <td>{{ r.action }}</td>
           <td>{{ r.code_type }}</td>
           <td>{{ r.form_type or "—" }}</td>

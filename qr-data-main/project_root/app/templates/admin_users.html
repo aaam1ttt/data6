@@ -26,7 +26,7 @@
               <td>{{ u.id }}</td>
               <td>{{ u.username }}</td>
               <td>{{ "да" if u.is_admin else "нет" }}</td>
-              <td>{{ u.created_at }}</td>
+              <td>{{ u.created_at | utc_to_moscow }}</td>
               <td class="row-actions">
                 <!-- Сброс пароля через prompt -->
                 <form id="reset-form-{{ u.id }}" method="post" action="{{ url_for('admin.users_reset_password', user_id=u.id) }}" style="display:inline;">

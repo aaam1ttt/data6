@@ -3,6 +3,7 @@ from flask import Flask
 from .extensions import init_db_teardown, ensure_dirs
 from .models.users import init_users_schema, ensure_admin_seed
 from .models.history import init_history_schema
+from .utils.timezone import utc_to_moscow
 
 def create_app():
     app = Flask(__name__)
@@ -31,6 +32,8 @@ def create_app():
 
     if os.getenv("AUTO_SEED_ADMIN", "1") == "1":
         ensure_admin_seed(app)
+
+    app.jinja_env.filters['utc_to_moscow'] = utc_to_moscow
 
     from .routes.main import bp as main_bp
     from .routes.auth import bp as auth_bp
