@@ -48,8 +48,8 @@
 
 
   <label id="editToggleLabel" style="display:flex;align-items:center;gap:8px; margin-top:8px; cursor:pointer; user-select:none;">
-    <input type="checkbox" id="allowEdit" checked style="width:16px; height:16px; cursor:pointer;">
-    <span style="font-size:14px; color:#e6e6e6;">Разрешить редактирование</span>
+    <input type="checkbox" id="lockEdit" style="width:16px; height:16px; cursor:pointer; accent-color:#ef4444;">
+    <span style="font-size:14px; color:#e6e6e6;">Заблокировать редактирование</span>
   </label>
 
   <div class="toolbar" style="display:flex; gap:8px; align-items:center; margin-top:10px; flex-wrap:wrap;">
@@ -167,7 +167,7 @@
 
   const textInput  = document.getElementById('textInput');
 
-  const allowEdit  = document.getElementById('allowEdit');
+  const lockEdit  = document.getElementById('lockEdit');
 
   const previewWrap= document.getElementById('previewWrap');
   const previewImg = document.getElementById('previewImg');
@@ -401,13 +401,13 @@
         for (const cell of row){
           const td = document.createElement('td');
           td.textContent = cell || '';
-          td.contentEditable = allowEdit.checked ? "true" : "false";
+          td.contentEditable = lockEdit.checked ? "false" : "true";
           tr.appendChild(td);
         }
         tblBody.appendChild(tr);
       }
       tableWrap.style.display = 'block';
-      applyBtn.style.display = allowEdit.checked ? 'inline-block' : 'none';
+      applyBtn.style.display = lockEdit.checked ? 'none' : 'inline-block';
     })
     .catch(()=>{ tableWrap.style.display='none'; });
   }
@@ -441,7 +441,7 @@
     for (let i=0;i<cols;i++){
       const td = document.createElement('td');
       td.textContent = '';
-      td.contentEditable = allowEdit.checked ? "true" : "false";
+      td.contentEditable = lockEdit.checked ? "false" : "true";
       tr.appendChild(td);
     }
     tblBody.appendChild(tr);
@@ -452,7 +452,7 @@
     if (!tblHead.firstChild){ const trh = document.createElement('tr'); trh.appendChild(th); tblHead.appendChild(trh); }
     else { tblHead.firstChild.appendChild(th); }
     for (const tr of tblBody.querySelectorAll('tr')){
-      const td = document.createElement('td'); td.textContent = ''; td.contentEditable = allowEdit.checked ? "true" : "false";
+      const td = document.createElement('td'); td.textContent = ''; td.contentEditable = lockEdit.checked ? "false" : "true";
       tr.appendChild(td);
     }
     tableWrap.style.display = 'block';
@@ -718,12 +718,12 @@
 
 
 
-  allowEdit.addEventListener('change', (e) => {
-    const editable = e.target.checked;
+  lockEdit.addEventListener('change', (e) => {
+    const locked = e.target.checked;
     for (const td of document.querySelectorAll('#tblBody td')){
-      td.contentEditable = editable ? "true" : "false";
+      td.contentEditable = locked ? "false" : "true";
     }
-    applyBtn.style.display = editable ? 'inline-block' : 'none';
+    applyBtn.style.display = locked ? 'none' : 'inline-block';
   });
 
   addRowBtn.addEventListener('click', (e)=>{ e.preventDefault(); addRow(); });
@@ -758,13 +758,13 @@
           for (const cell of row){
             const td = document.createElement('td');
             td.textContent = cell || '';
-            td.contentEditable = allowEdit.checked ? "true" : "false";
+            td.contentEditable = lockEdit.checked ? "false" : "true";
             tr.appendChild(td);
           }
           tblBody.appendChild(tr);
         }
         tableWrap.style.display = 'block';
-        applyBtn.style.display = allowEdit.checked ? 'inline-block' : 'none';
+        applyBtn.style.display = lockEdit.checked ? 'none' : 'inline-block';
       })
       .catch(()=> showAlert('error','Ошибка сети при импорте'));
   });

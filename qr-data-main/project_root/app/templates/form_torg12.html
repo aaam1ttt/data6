@@ -49,8 +49,8 @@
     <div style="display:flex;gap:8px;margin-top:12px;align-items:center;flex-wrap:wrap;">
       <button class="btn primary" type="submit" id="submitBtn">Сформировать</button>
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;" id="editToggleLabel">
-        <input type="checkbox" id="readonlyToggle" style="width:16px; height:16px; cursor:pointer;"> 
-        <span id="toggleText" style="font-size:14px;color:#e6e6e6;">Заблокировать редактирование</span>
+        <input type="checkbox" id="lockEdit" style="width:16px; height:16px; cursor:pointer; accent-color:#ef4444;"> 
+        <span style="font-size:14px;color:#e6e6e6;">Заблокировать редактирование</span>
       </label>
     </div>
   </form>
@@ -187,40 +187,13 @@
   inputs.forEach(i=>i.addEventListener('input',updateCounter));
   updateCounter();
 
-  // Handle readonly toggle with better styling and visibility
-  const readonlyToggle = document.getElementById('readonlyToggle');
-  const toggleText = document.getElementById('toggleText');
-  const toggleIcon = document.getElementById('toggleIcon');
-  const submitBtn = document.getElementById('submitBtn');
-  const typeSelect = document.getElementById('t_type');
-  const sizeSelect = document.getElementById('t_size');
+  // Handle lock edit toggle
+  const lockEdit = document.getElementById('lockEdit');
   
-  readonlyToggle.addEventListener('change', e => {
-    const isReadonly = e.target.checked;
-    inputs.forEach(i => i.readOnly = isReadonly);
-    
-    if (isReadonly) {
-      toggleText.textContent = 'Разрешить редактирование';
-      // Hide code type and size selects when readonly
-      typeSelect.style.display = 'none';
-      sizeSelect.style.display = 'none';
-      typeSelect.parentElement.style.display = 'none';
-      sizeSelect.parentElement.style.display = 'none';
-    } else {
-      toggleText.textContent = 'Заблокировать редактирование';
-      // Show code type and size selects when editable
-      typeSelect.style.display = 'block';
-      sizeSelect.style.display = 'block';
-      typeSelect.parentElement.style.display = 'block';
-      sizeSelect.parentElement.style.display = 'block';
-    }
+  lockEdit.addEventListener('change', e => {
+    const isLocked = e.target.checked;
+    inputs.forEach(i => i.readOnly = isLocked);
   });
-  
-  // Check if opened from scan with readonly mode
-  if (new URLSearchParams(window.location.search).get('from_scan') === '1') {
-    readonlyToggle.checked = true;
-    readonlyToggle.dispatchEvent(new Event('change'));
-  }
   {% endif %}
 
   {% if result_image %}

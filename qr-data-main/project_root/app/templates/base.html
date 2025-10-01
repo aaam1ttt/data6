@@ -197,33 +197,11 @@
   text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
-/* === Better Toggle Button === */
+/* === Lock Edit Checkbox === */
 #editToggleLabel {
-  background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
-  border: 2px solid #3b82f6;
-  border-radius: 12px;
-  padding: 8px 16px;
   transition: all 0.3s ease;
   cursor: pointer;
   user-select: none;
-}
-
-#editToggleLabel:hover {
-  background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
-  border-color: #60a5fa;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-}
-
-#toggleIcon {
-  font-size: 18px;
-  margin-left: 4px;
-  transition: all 0.3s ease;
-}
-
-#editToggleLabel input[type="checkbox"] {
-  display: none;
-}
 }
   </style>
   <script src="{{ url_for('static', filename='print-fix.js') }}"></script>
