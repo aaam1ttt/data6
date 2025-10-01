@@ -168,8 +168,59 @@
   }
 
   updateCounter();
-  // Initialize print size controls for custom form (result page)
+  
+  // Result page logic
   {% if result_image %}
+  async function getDataUrl(){
+    const text = document.getElementById('encText').value || '';
+    const code_type = "{{ code_type or 'QR' }}";
+    const size = Number("{{ size or 300 }}");
+    const r = await fetch('{{ url_for("forms.api_generate_code") }}',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ text, code_type, size })
+    });
+    const j = await r.json();
+    if(!j || !j.ok) throw new Error('gen failed');
+    return j.data_url;
+  }
+
+  async function saveSmart(){
+    const fmt = document.getElementById('fmt').value;
+    if(!('showSaveFilePicker' in window)){
+      document.getElementById('fsHint').style.display='block';
+      document.getElementById('sfmt').value = fmt;
+      document.getElementById('sf').submit();
+      return;
+    }
+    if(fmt==='pdf'){
+      document.getElementById('sfmt').value='pdf';
+      document.getElementById('sf').submit();
+      return;
+    }
+    const suggested = 'custom_code.'+fmt;
+    const handle = await window.showSaveFilePicker({
+      suggestedName: suggested,
+      types: [{description:'Изображение', accept:{'image/png':['.png'],'image/jpeg':['.jpg','.jpeg']}}]
+    });
+    const dataUrl = await getDataUrl();
+    const res = await fetch(dataUrl);
+    let blob = await res.blob();
+
+    if(fmt==='jpg'){
+      const bmp = await createImageBitmap(blob);
+      const canvas = document.createElement('canvas'); canvas.width=bmp.width; canvas.height=bmp.height;
+      const ctx = canvas.getContext('2d'); ctx.drawImage(bmp,0,0);
+      blob = await new Promise(r=>canvas.toBlob(r,'image/jpeg',0.95));
+    }
+
+    const stream = await handle.createWritable();
+    await stream.write(blob);
+    await stream.close();
+  }
+
+  document.getElementById('saveOne')?.addEventListener('click', () => { saveSmart().catch(()=>{ document.getElementById('sf').submit(); }); });
+  
+  // Initialize print size controls for custom form (result page)
   if (window.initPrintSizeControls) {
     window.initPrintSizeControls("{{ code_type or 'QR' }}", {{ size or 300 }}, "{{ encoded }}");
   }
