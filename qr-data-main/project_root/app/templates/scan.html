@@ -150,6 +150,12 @@
     previewImg.src=url; 
     previewWrap.style.display='flex'; 
   }
+  
+  function dynamicResize(img){
+    // Uniform 210px preview for all code types (QR, Aztec, DataMatrix, etc.)
+    img.style.maxHeight = '210px';
+    img.style.minHeight = '210px';
+  }
 
   // Функции камеры
   function showCameraError(msg){

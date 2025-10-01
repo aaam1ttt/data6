@@ -272,13 +272,9 @@
   }
   
   function dynamicResize(img){
-    if(img.naturalWidth > 600 || img.naturalHeight > 600){
-      img.style.maxHeight = Math.max(420, img.naturalHeight) + 'px';
-      img.style.minHeight = '210px';
-    } else {
-      img.style.maxHeight = '210px';
-      img.style.minHeight = '210px';
-    }
+    // Uniform 210px preview for all code types (QR, Aztec, DataMatrix, etc.)
+    img.style.maxHeight = '210px';
+    img.style.minHeight = '210px';
   }
 
   function fillSizePresets(){
