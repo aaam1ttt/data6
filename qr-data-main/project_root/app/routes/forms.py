@@ -55,11 +55,21 @@ def api_generate_code():
     if code_type.upper() in ['C128', 'PDF417'] and text_under:
         human_text = text_under
     
-    img = generate_by_type(code_type, text, size=size, human_text=human_text, gost_code=gost_code)
+    img, metadata = generate_by_type(code_type, text, size=size, human_text=human_text, gost_code=gost_code)
     bio = io.BytesIO()
     img.save(bio, format="PNG", optimize=True)
     b64 = base64.b64encode(bio.getvalue()).decode("ascii")
-    return jsonify({"ok": True, "data_url": f"data:image/png;base64,{b64}"})
+    
+    response_data = {
+        "ok": True, 
+        "data_url": f"data:image/png;base64,{b64}"
+    }
+    
+    # Добавляем предупреждение о транслитерации
+    if metadata.get("transliterated"):
+        response_data["warning"] = "Кириллический текст был автоматически транслитерирован в латиницу для совместимости с Aztec-кодом"
+    
+    return jsonify(response_data)
 
 @bp.route("/api_save", methods=["POST"])
 def api_save_code():
@@ -72,7 +82,10 @@ def api_save_code():
         flash("Пустой текст", "error")
         return redirect(url_for("forms.create_free"))
 
-    img = generate_by_type(code_type, text, size=size, gost_code=gost_code)
+    img, metadata = generate_by_type(code_type, text, size=size, gost_code=gost_code)
+    
+    if metadata.get("transliterated"):
+        flash("Кириллический текст был автоматически транслитерирован в латиницу для совместимости с Aztec-кодом", "info")
 
     if session.get("user"):
         _ = _save_and_maybe_log(img, text, code_type, detect_form_by_prefix(text))
@@ -276,7 +289,9 @@ def form_torg12():
         for code, _label in TORG12_FIELDS:
             values[code] = (request.form.get(f"f_{code}") or "").strip()
         encoded = torg12_make_string(values)
-        img = generate_by_type(code_type, encoded, size=size, gost_code=gost_code)
+        img, metadata = generate_by_type(code_type, encoded, size=size, gost_code=gost_code)
+        if metadata.get("transliterated"):
+            flash("Кириллический текст был автоматически транслитерирован в латиницу для совместимости с Aztec-кодом", "info")
         fname = _save_and_maybe_log(img, encoded, (code_type or 'QR').upper(), "torg12")
         return render_template("form_torg12.html", title="ТОРГ-12",
                                fields=TORG12_FIELDS, initial=values, result_image=url_for("forms.code_image", filename=fname),
@@ -302,7 +317,9 @@ def form_message():
             pairs.append((p or "", v or ""))
             idx += 1
         encoded = env_make_string(pairs)
-        img = generate_by_type(code_type, encoded, size=size)
+        img, metadata = generate_by_type(code_type, encoded, size=size)
+        if metadata.get("transliterated"):
+            flash("Кириллический текст был автоматически транслитерирован в латиницу для совместимости с Aztec-кодом", "info")
         fname = _save_and_maybe_log(img, encoded, (code_type or 'QR').upper(), "message")
         return render_template("form_message.html", title="Сообщение", pairs=pairs,
                                result_image=url_for("forms.code_image", filename=fname),
@@ -335,7 +352,9 @@ def form_exploitation():
             i += 1
         tup_rows = [tuple(r[:5]) for r in rows]
         encoded = exploitation_make_string(tup_rows)  # type: ignore
-        img = generate_by_type(code_type, encoded, size=size)
+        img, metadata = generate_by_type(code_type, encoded, size=size)
+        if metadata.get("transliterated"):
+            flash("Кириллический текст был автоматически транслитерирован в латиницу для совместимости с Aztec-кодом", "info")
         fname = _save_and_maybe_log(img, encoded, (code_type or 'QR').upper(), "exploitation")
         return render_template("form_exploitation.html", title="Эксплуатация", rows=rows,
                                result_image=url_for("forms.code_image", filename=fname),
@@ -368,7 +387,9 @@ def form_transport():
             i += 1
         tup_rows = [tuple(r[:4]) for r in rows]
         encoded = transport_make_string(tup_rows)  # type: ignore
-        img = generate_by_type(code_type, encoded, size=size)
+        img, metadata = generate_by_type(code_type, encoded, size=size)
+        if metadata.get("transliterated"):
+            flash("Кириллический текст был автоматически транслитерирован в латиницу для совместимости с Aztec-кодом", "info")
         fname = _save_and_maybe_log(img, encoded, (code_type or 'QR').upper(), "transport")
         return render_template("form_transport.html", title="Транспортная маркировка", rows=rows,
                                result_image=url_for("forms.code_image", filename=fname),
@@ -400,7 +421,9 @@ def form_custom():
             encoded = custom_make_string(rows)
         else:
             encoded = (request.form.get("text") or "").strip()
-        img = generate_by_type(code_type, encoded, size=size)
+        img, metadata = generate_by_type(code_type, encoded, size=size)
+        if metadata.get("transliterated"):
+            flash("Кириллический текст был автоматически транслитерирован в латиницу для совместимости с Aztec-кодом", "info")
         fname = _save_and_maybe_log(img, encoded, (code_type or 'QR').upper(), "custom")
         return render_template("form_custom.html", title="Произвольная таблица/текст",
                                mode=request.form.get("mode") or "table",

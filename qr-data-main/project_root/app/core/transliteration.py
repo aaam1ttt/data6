@@ -40,8 +40,8 @@ LATIN_TO_CYRILLIC = {
 TRANSLITERATION_MARKER = "__cyr__"
 
 def contains_cyrillic(text: str) -> bool:
-    """Проверяет, содержит ли текст кириллические символы"""
-    return bool(re.search(r'[а-яё]', text, re.IGNORECASE))
+    """Проверяет, содержит ли текст кириллические символы (Unicode U+0400-U+04FF)"""
+    return bool(re.search(r'[\u0400-\u04FF]', text))
 
 def transliterate_to_latin(text: str) -> str:
     """Транслитерирует кириллический текст в латиницу"""
@@ -190,3 +190,24 @@ def prepare_text_for_barcode(text: str, add_marker: bool = True) -> str:
 def process_scanned_text(text: str) -> str:
     """Обрабатывает отсканированный текст, возвращая кириллицу если нужно"""
     return transliterate_to_cyrillic(text)
+
+def is_latin1_compatible(text: str) -> bool:
+    """Проверяет, совместим ли текст с кодировкой Latin-1 (ISO-8859-1)"""
+    try:
+        text.encode('latin-1')
+        return True
+    except UnicodeEncodeError:
+        return False
+
+def transliterate_for_aztec(text: str) -> tuple[str, bool]:
+    """
+    Интеллектуальная транслитерация для Aztec-кодов.
+    Применяет транслитерацию только если текст содержит кириллицу.
+    
+    Returns:
+        tuple: (обработанный текст, был ли применён транслит)
+    """
+    if contains_cyrillic(text):
+        transliterated = transliterate_to_latin(text)
+        return transliterated, True
+    return text, False

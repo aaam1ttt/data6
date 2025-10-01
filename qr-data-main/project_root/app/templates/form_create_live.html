@@ -365,6 +365,9 @@
       setBusy(false);
       if (!data || !data.ok){ showAlert('error', data?.error || 'Ошибка генерации'); return; }
       clearAlert();
+      if (data.warning) {
+        showAlert('info', data.warning);
+      }
       renderPreview(data.data_url);
       previewTableFromText(text);
     })

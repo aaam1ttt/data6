@@ -398,11 +398,16 @@ def generate_pdf417(text: str, size: int = 300, human_text: str = "", gost_code:
     except Exception as e:
         raise RuntimeError("Не удалось сгенерировать PDF417. Установите 'pdf417gen'.") from e
 
-def generate_aztec(text: str, size: int = 300, gost_code: str = None) -> Image.Image:
+def generate_aztec(text: str, size: int = 300, gost_code: str = None) -> tuple[Image.Image, bool]:
     """
     Generate Aztec barcode with proper implementation.
     Uses aztec-code-generator library for reliable Aztec code generation.
+    
+    Returns:
+        tuple: (изображение, была ли применена транслитерация)
     """
+    from .transliteration import transliterate_for_aztec, is_latin1_compatible
+    
     # Calculate final size based on GOST if provided
     if gost_code:
         try:
@@ -413,6 +418,11 @@ def generate_aztec(text: str, size: int = 300, gost_code: str = None) -> Image.I
     else:
         actual_size = size
     
+    # Интеллектуальная транслитерация: только для нелатинских символов
+    transliterated = False
+    if not is_latin1_compatible(text):
+        text, transliterated = transliterate_for_aztec(text)
+    
     # Try aztec-code-generator library (pure Python implementation)
     try:
         import aztec_code_generator
@@ -422,13 +432,8 @@ def generate_aztec(text: str, size: int = 300, gost_code: str = None) -> Image.I
         try:
             text_bytes = text.encode('latin-1')
         except UnicodeEncodeError:
-            # For non-latin-1 characters, use UTF-8 and try latin-1 fallback
-            text_bytes = text.encode('utf-8', errors='ignore')
-            try:
-                text = text_bytes.decode('latin-1')
-            except:
-                # If that fails, skip this library
-                raise ValueError("Text contains characters not supported by aztec-code-generator")
+            # For remaining non-latin-1 characters after transliteration, use fallback
+            raise ValueError("Text contains characters not supported by aztec-code-generator")
         
         # Generate Aztec code matrix
         aztec = aztec_code_generator.AztecCode(text)
@@ -464,7 +469,7 @@ def generate_aztec(text: str, size: int = 300, gost_code: str = None) -> Image.I
         # LANCZOS creates antialiasing which makes barcode unreadable
         final_img = bordered_img.resize((actual_size, actual_size), Image.NEAREST)
         
-        return final_img
+        return final_img, transliterated
         
     except ImportError:
         pass  # Try next method
@@ -496,7 +501,7 @@ def generate_aztec(text: str, size: int = 300, gost_code: str = None) -> Image.I
         aztec_img = _scale_nearest_exact(aztec_img, actual_size)
         
         # Enhance for better scanning
-        return _enhance_contrast(aztec_img)
+        return _enhance_contrast(aztec_img), transliterated
         
     except ImportError:
         pass  # Try next method
@@ -504,7 +509,7 @@ def generate_aztec(text: str, size: int = 300, gost_code: str = None) -> Image.I
         print(f"Treepoem Aztec generation error: {e}")
     
     # Custom fallback implementation with improved quality
-    return _generate_aztec_improved(text, actual_size)
+    return _generate_aztec_improved(text, actual_size), transliterated
 
 def _generate_aztec_improved(text: str, size: int = 300) -> Image.Image:
     """
@@ -985,23 +990,36 @@ def _process_aztec_image(aztec_img, size: int, gost_code: str = None):
     
     return final_img
 
-def generate_by_type(code_type: str, text: str, size: int = 300, human_text: str = "", gost_code: str = None) -> Image.Image:
+def generate_by_type(code_type: str, text: str, size: int = 300, human_text: str = "", gost_code: str = None) -> tuple[Image.Image, dict]:
+    """
+    Генерирует код указанного типа.
+    
+    Returns:
+        tuple: (изображение, метаданные с информацией о транслитерации)
+    """
     from .transliteration import prepare_text_for_barcode
     
-    processed_text = prepare_text_for_barcode(text)
+    metadata = {"transliterated": False, "code_type": code_type}
     
     code_type_lower = code_type.lower()
     
+    # Для Aztec используем интеллектуальную транслитерацию
+    if code_type_lower == "aztec":
+        img, was_transliterated = generate_aztec(text, size, gost_code)
+        metadata["transliterated"] = was_transliterated
+        return img, metadata
+    
+    # Для остальных типов используем обычную обработку
+    processed_text = prepare_text_for_barcode(text)
+    
     if code_type_lower in ["qr", "qrcode"]:
-        return generate_qr(processed_text, size, "H", gost_code)
+        return generate_qr(processed_text, size, "H", gost_code), metadata
     elif code_type_lower in ["dm", "datamatrix", "data_matrix"]:
-        return generate_dm(processed_text, size, gost_code)
+        return generate_dm(processed_text, size, gost_code), metadata
     elif code_type_lower in ["code128", "c128"]:
-        return generate_code128(processed_text, size, human_text, gost_code)
+        return generate_code128(processed_text, size, human_text, gost_code), metadata
     elif code_type_lower == "pdf417":
-        return generate_pdf417(processed_text, size, human_text, gost_code)
-    elif code_type_lower == "aztec":
-        return generate_aztec(processed_text, size, gost_code)
+        return generate_pdf417(processed_text, size, human_text, gost_code), metadata
     else:
         raise ValueError(f"Неизвестный тип кода: {code_type}")
 
