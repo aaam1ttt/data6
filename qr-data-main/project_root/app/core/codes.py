@@ -1031,6 +1031,8 @@ def decode_auto(img: Image.Image) -> List[Dict[str, str]]:
     Comprehensive barcode decoder supporting all main types:
     QR, DataMatrix, Code128, PDF417, Aztec
     """
+    from .transliteration import process_scanned_text
+    
     results = []
     
     # First try pyzbar for most common formats (QR, Code128, PDF417, etc.)
@@ -1070,6 +1072,8 @@ def decode_auto(img: Image.Image) -> List[Dict[str, str]]:
                             'AZTEC': 'AZTEC'
                         }
                         code_type = type_map.get(obj.type, obj.type)
+                        # Process scanned text to reverse transliteration if needed
+                        text = process_scanned_text(text)
                         results.append({"text": text, "type": code_type})
                     except UnicodeDecodeError:
                         # Try different encodings for non-UTF8 data
@@ -1083,6 +1087,8 @@ def decode_auto(img: Image.Image) -> List[Dict[str, str]]:
                                     'AZTEC': 'AZTEC'
                                 }
                                 code_type = type_map.get(obj.type, obj.type)
+                                # Process scanned text to reverse transliteration if needed
+                                text = process_scanned_text(text)
                                 results.append({"text": text, "type": code_type})
                                 break
                             except:
@@ -1101,11 +1107,15 @@ def decode_auto(img: Image.Image) -> List[Dict[str, str]]:
                 for result in dm_results:
                     try:
                         text = result.data.decode('utf-8')
+                        # Process scanned text to reverse transliteration if needed
+                        text = process_scanned_text(text)
                         results.append({"text": text, "type": "DATAMATRIX"})
                     except UnicodeDecodeError:
                         for encoding in ['cp1251', 'latin1', 'ascii', 'cp866']:
                             try:
                                 text = result.data.decode(encoding)
+                                # Process scanned text to reverse transliteration if needed
+                                text = process_scanned_text(text)
                                 results.append({"text": text, "type": "DATAMATRIX"})
                                 break
                             except:
@@ -1130,6 +1140,8 @@ def decode_auto(img: Image.Image) -> List[Dict[str, str]]:
             detector = cv2.QRCodeDetector()
             data, points, _ = detector.detectAndDecode(img_cv)
             if data:
+                # Process scanned text to reverse transliteration if needed
+                data = process_scanned_text(data)
                 results.append({"text": data, "type": "QR"})
                 
         except ImportError:
@@ -1174,6 +1186,9 @@ def decode_auto(img: Image.Image) -> List[Dict[str, str]]:
                     }
                     code_type = type_map.get(barcode_type, barcode_type)
                     
+                    # Process scanned text to reverse transliteration if needed
+                    decoded_text = process_scanned_text(decoded_text)
+                    
                     results.append({"text": decoded_text, "type": code_type})
                 
         except ImportError:
@@ -1199,7 +1214,9 @@ def decode_auto(img: Image.Image) -> List[Dict[str, str]]:
             # Try to decode
             zx_results = zxingcpp.read_barcodes(img_gray)
             for result in zx_results:
-                results.append({"text": result.text, "type": result.format.name})
+                # Process scanned text to reverse transliteration if needed
+                text = process_scanned_text(result.text)
+                results.append({"text": text, "type": result.format.name})
                 
         except ImportError:
             pass

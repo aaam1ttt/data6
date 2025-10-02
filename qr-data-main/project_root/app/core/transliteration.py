@@ -107,32 +107,49 @@ def transliterate_to_cyrillic(text: str) -> str:
     while i < len(text):
 
         if i < len(text) - 3:
-            four_char = text[i:i+4].lower()
+            four_char = text[i:i+4]
             if four_char in LATIN_TO_CYRILLIC:
                 result += LATIN_TO_CYRILLIC[four_char]
+                i += 4
+                continue
+            four_char_lower = four_char.lower()
+            if four_char_lower in LATIN_TO_CYRILLIC:
+                result += LATIN_TO_CYRILLIC[four_char_lower]
                 i += 4
                 continue
         
 
         if i < len(text) - 2:
-            three_char = text[i:i+3].lower()
+            three_char = text[i:i+3]
             if three_char in LATIN_TO_CYRILLIC:
                 result += LATIN_TO_CYRILLIC[three_char]
+                i += 3
+                continue
+            three_char_lower = three_char.lower()
+            if three_char_lower in LATIN_TO_CYRILLIC:
+                result += LATIN_TO_CYRILLIC[three_char_lower]
                 i += 3
                 continue
         
 
         if i < len(text) - 1:
-            two_char = text[i:i+2].lower()
+            two_char = text[i:i+2]
             if two_char in LATIN_TO_CYRILLIC:
                 result += LATIN_TO_CYRILLIC[two_char]
+                i += 2
+                continue
+            two_char_lower = two_char.lower()
+            if two_char_lower in LATIN_TO_CYRILLIC:
+                result += LATIN_TO_CYRILLIC[two_char_lower]
                 i += 2
                 continue
         
 
         char = text[i]
-        if char.lower() in LATIN_TO_CYRILLIC:
+        if char in LATIN_TO_CYRILLIC:
             result += LATIN_TO_CYRILLIC[char]
+        elif char.lower() in LATIN_TO_CYRILLIC:
+            result += LATIN_TO_CYRILLIC[char.lower()]
         else:
             result += char
         i += 1
