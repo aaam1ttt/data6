@@ -1,10 +1,10 @@
 <!-- Collapsible Print Controls -->
 <div class="dropdown" style="position:relative; display:inline-block;">
   <button id="printBtn" class="btn" type="button">Печать ▼</button>
-  <div id="printDropdown" class="dropdown-content" style="display:none; position:absolute; top:100%; left:0; background:#1e293b; border:1px solid #374151; border-radius:8px; min-width:250px; z-index:1000; box-shadow:0 4px 6px rgba(0,0,0,0.1);">
-    <div style="padding:8px 12px; border-bottom:1px solid #374151;">
-      <label style="font-size:12px; color:#9ca3af; display:block; margin-bottom:4px;">Размер печати</label>
-      <select id="printSizeSelect" style="width:100%; padding:4px 8px; border-radius:4px; background:#0f172a; color:#e6e6e6; border:1px solid #374151; font-size:12px;">
+  <div id="printDropdown" class="dropdown-content" style="display:none; position:absolute; top:100%; left:0; background:#1e293b; border:1px solid #374151; border-radius:8px; min-width:260px; z-index:1000; box-shadow:0 4px 6px rgba(0,0,0,0.1);">
+    <div style="padding:12px; border-bottom:1px solid #374151;">
+      <label style="font-size:12px; color:#9ca3af; display:block; margin-bottom:6px;">Размер печати (ГОСТ)</label>
+      <select id="printSizeSelect" style="width:100%; padding:8px; border-radius:6px; background:#0f172a; color:#e6e6e6; border:1px solid #374151; font-size:13px;">
         <!-- Options will be populated by JavaScript -->
       </select>
     </div>
@@ -75,7 +75,6 @@
       {gost: 'AZ-S2', px: 236, label: 'AZ-S2: Средний (20×20 мм)', mm: 20, layout: '7×9 на А4'},
       {gost: 'AZ-S3', px: 295, label: 'AZ-S3: Большой (25×25 мм)', mm: 25, layout: '6×7 на А4'},
       {gost: 'AZ-S4', px: 354, label: 'AZ-S4: Печатный (30×30 мм)', mm: 30, layout: '5×6 на А4'}
-    ]
     ]
   };
 
@@ -410,7 +409,10 @@
     }
 
     // Event listeners
-    printBtn.addEventListener('click', togglePrintDropdown);
+    printBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      togglePrintDropdown();
+    });
     printExecuteBtn.addEventListener('click', printWithSelectedSize);
     if (multiSameBtn) multiSameBtn.addEventListener('click', printMultipleSame);
     if (queueAddBtn) queueAddBtn.addEventListener('click', addToQueue);
