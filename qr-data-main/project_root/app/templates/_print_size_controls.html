@@ -129,7 +129,7 @@
       const gostCode = selectedOption.dataset.gost;
       
       try {
-        const response = await fetch('{{ url_for("forms.api_generate_code") }}', {
+        const response = await fetch('/api_generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -189,7 +189,7 @@
       const selectedMM = parseFloat(selectedOption.dataset.mm);
       const gostCode = selectedOption.dataset.gost;
       
-      fetch('{{ url_for("forms.api_generate_code") }}', {
+      fetch('/api_generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -342,7 +342,7 @@
       let processedCount = 0;
 
       printQueue.forEach((item, index) => {
-        fetch('{{ url_for("forms.api_generate_code") }}', {
+        fetch('/api_generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

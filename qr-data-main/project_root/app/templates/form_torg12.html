@@ -218,7 +218,7 @@
     const text = encEl.value || '';
     const code_type = "{{ code_type or 'QR' }}";
     const size = Number("{{ size or 300 }}");
-    const r = await fetch('{{ url_for("forms.api_generate_code") }}',{
+    const r = await fetch('/api_generate',{
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ text, code_type, size })
     });
