@@ -156,16 +156,27 @@
       
       // Restore preview - ensure proper sizing
       if(state.previewSrc&&state.previewVisible){
-        previewWrap.style.display='flex';
+        // Apply sizing BEFORE setting src to prevent flashing
+        previewImg.style.maxHeight='210px';
+        previewImg.style.minHeight='210px';
+        previewImg.style.width='auto';
+        previewImg.style.objectFit='contain';
+        
+        // Set up onload handler for non-cached images
         previewImg.onload=()=>{
-          // Ensure image maintains its size after load
           previewImg.style.maxHeight='210px';
           previewImg.style.minHeight='210px';
         };
+        
+        // Set src and show container
         previewImg.src=state.previewSrc;
-        // Apply sizing immediately in case image is cached
-        previewImg.style.maxHeight='210px';
-        previewImg.style.minHeight='210px';
+        previewWrap.style.display='flex';
+        
+        // For cached images, onload may not fire - force sizing after next tick
+        setTimeout(()=>{
+          previewImg.style.maxHeight='210px';
+          previewImg.style.minHeight='210px';
+        },10);
       }
       
       // Restore file info
