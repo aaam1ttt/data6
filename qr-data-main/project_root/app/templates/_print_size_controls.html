@@ -1,13 +1,7 @@
 <!-- Collapsible Print Controls -->
 <div class="dropdown" style="position:relative; display:inline-block;">
   <button id="printBtn" class="btn" type="button">Печать ▼</button>
-  <div id="printDropdown" class="dropdown-content" style="display:none; position:absolute; top:100%; left:0; background:#1e293b; border:1px solid #374151; border-radius:8px; min-width:260px; z-index:1000; box-shadow:0 4px 6px rgba(0,0,0,0.1);">
-    <div style="padding:12px; border-bottom:1px solid #374151;">
-      <label style="font-size:12px; color:#9ca3af; display:block; margin-bottom:6px;">Размер печати (ГОСТ)</label>
-      <select id="printSizeSelect" style="width:100%; padding:8px; border-radius:6px; background:#0f172a; color:#e6e6e6; border:1px solid #374151; font-size:13px;">
-        <!-- Options will be populated by JavaScript -->
-      </select>
-    </div>
+  <div id="printDropdown" class="dropdown-content" style="display:none; position:absolute; top:100%; left:0; background:#1e293b; border:1px solid #374151; border-radius:8px; min-width:200px; z-index:1000; box-shadow:0 4px 6px rgba(0,0,0,0.1);">
     <button id="printExecuteBtn" class="dropdown-item" type="button">Печать</button>
     <button id="multiSameBtn" class="dropdown-item" type="button">Печать несколько одинаковых</button>
     <button id="queueAddBtn" class="dropdown-item" type="button">Добавить в очередь</button>
@@ -81,7 +75,6 @@
   function initPrintSizeControls(codeType, currentSize, encodedText) {
     const printBtn = document.getElementById('printBtn');
     const printDropdown = document.getElementById('printDropdown');
-    const printSizeSelect = document.getElementById('printSizeSelect');
     const printExecuteBtn = document.getElementById('printExecuteBtn');
     const multiSameBtn = document.getElementById('multiSameBtn');
     const queueAddBtn = document.getElementById('queueAddBtn');
@@ -89,27 +82,7 @@
     const viewQueueBtn = document.getElementById('viewQueueBtn');
     const queueClearBtn = document.getElementById('queueClearBtn');
 
-    if (!printBtn || !printDropdown || !printSizeSelect || !printExecuteBtn) return;
-
-    // Populate GOST size options
-    function fillPrintSizes(type, current) {
-      printSizeSelect.innerHTML = '';
-      (GOST_PRESETS[type] || GOST_PRESETS.QR).forEach((p, i) => {
-        const opt = document.createElement('option');
-        opt.value = p.px;
-        opt.textContent = p.label;
-        opt.dataset.mm = p.mm;
-        opt.dataset.gost = p.gost;
-        opt.dataset.layout = p.layout;
-        opt.title = `${p.gost}: ${p.mm}мм, ${p.layout}`;
-        if (current ? String(p.px) == String(current) : i === 1) { // Default to S2 (ТОРГ-12)
-          opt.selected = true;
-        }
-        printSizeSelect.appendChild(opt);
-      });
-    }
-
-    fillPrintSizes(codeType, currentSize);
+    if (!printBtn || !printDropdown || !printExecuteBtn) return;
 
     // Toggle dropdown
     function togglePrintDropdown() {
@@ -120,12 +93,12 @@
       printDropdown.style.display = 'none';
     }
 
-    // Generate code at selected GOST size and print
+    // Generate code at current size and print
     async function printWithSelectedSize() {
-      const selectedSize = parseInt(printSizeSelect.value);
-      const selectedOption = printSizeSelect.selectedOptions[0];
-      const selectedMM = parseFloat(selectedOption.dataset.mm);
-      const gostCode = selectedOption.dataset.gost;
+      const presets = GOST_PRESETS[codeType] || GOST_PRESETS.QR;
+      const currentPreset = presets.find(p => p.px === currentSize) || presets[1];
+      const selectedMM = currentPreset.mm;
+      const gostCode = currentPreset.gost;
       
       try {
         const response = await fetch('/api_generate', {
@@ -134,7 +107,7 @@
           body: JSON.stringify({
             text: encodedText,
             code_type: codeType,
-            size: selectedSize,
+            size: currentSize,
             gost_code: gostCode
           })
         });
@@ -183,10 +156,10 @@
       const count = parseInt(prompt('Сколько одинаковых кодов напечатать?', '2'));
       if (!count || count < 1 || count > 20) return;
 
-      const selectedSize = parseInt(printSizeSelect.value);
-      const selectedOption = printSizeSelect.selectedOptions[0];
-      const selectedMM = parseFloat(selectedOption.dataset.mm);
-      const gostCode = selectedOption.dataset.gost;
+      const presets = GOST_PRESETS[codeType] || GOST_PRESETS.QR;
+      const currentPreset = presets.find(p => p.px === currentSize) || presets[1];
+      const selectedMM = currentPreset.mm;
+      const gostCode = currentPreset.gost;
       
       fetch('/api_generate', {
         method: 'POST',
@@ -194,7 +167,7 @@
         body: JSON.stringify({
           text: encodedText,
           code_type: codeType,
-          size: selectedSize,
+          size: currentSize,
           gost_code: gostCode
         })
       })
@@ -242,13 +215,13 @@
     let printQueue = JSON.parse(localStorage.getItem('printQueue') || '[]');
 
     function addToQueue() {
-      const selectedSize = parseInt(printSizeSelect.value);
-      const selectedOption = printSizeSelect.selectedOptions[0];
-      const gostCode = selectedOption.dataset.gost;
+      const presets = GOST_PRESETS[codeType] || GOST_PRESETS.QR;
+      const currentPreset = presets.find(p => p.px === currentSize) || presets[1];
+      const gostCode = currentPreset.gost;
       const item = {
         text: encodedText,
         code_type: codeType,
-        size: selectedSize,
+        size: currentSize,
         gost_code: gostCode,
         timestamp: Date.now()
       };
@@ -429,7 +402,6 @@
 
     // Return API for external use
     return {
-      updateCodeType: fillPrintSizes,
       hide: hidePrintDropdown
     };
   }
