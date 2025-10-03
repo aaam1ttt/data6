@@ -2,7 +2,7 @@ from app import create_app
 from app.models.users import find_user_by_username, create_user, set_password
 
 USERNAME = "admin"
-PASSWORD = "admin123"
+PASSWORD = "183729"
 
 app = create_app()
 with app.app_context():
