@@ -156,7 +156,10 @@ def generate_qr(text: str, size: int = 300, preferred_ecc: str = "H", gost_code:
                 box_size=base_box_size,
                 border=4
             )
-            qr.add_data(text)
+            if isinstance(text, str):
+                qr.add_data(text.encode('utf-8'))
+            else:
+                qr.add_data(text)
             qr.make(fit=True)
             
             matrix = qr.get_matrix()
@@ -420,8 +423,11 @@ def generate_aztec(text: str, size: int = 300, gost_code: str = None) -> tuple[I
     
     # Интеллектуальная транслитерация: только для нелатинских символов
     transliterated = False
+    original_text = text
     if not is_latin1_compatible(text):
         text, transliterated = transliterate_for_aztec(text)
+        # Не добавляем маркер для Aztec, так как он не поддерживает расширенные символы
+        # Вместо этого полагаемся на автоопределение при декодировании
     
     # Try aztec-code-generator library (pure Python implementation)
     try:
@@ -1010,7 +1016,8 @@ def generate_by_type(code_type: str, text: str, size: int = 300, human_text: str
         return img, metadata
     
     # Для остальных типов используем обычную обработку
-    processed_text = prepare_text_for_barcode(text)
+    # Всегда добавляем маркер для правильного декодирования
+    processed_text = prepare_text_for_barcode(text, add_marker=True)
     
     if code_type_lower in ["qr", "qrcode"]:
         return generate_qr(processed_text, size, "H", gost_code), metadata
