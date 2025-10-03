@@ -453,8 +453,11 @@
     resetUI(false);
     clearAlert();
     clearScanState();
+    resultCard.style.display='none';
     resultText.value='';
     codeTypeEl.textContent='';
+    openFormBtn.style.display='none';
+    openExcelBtn.style.display='none';
     currentExcelData={text:'',form_type:''};
     fileInfo.textContent=`Размер: ${formatSize(file.size)} (макс. 20 МБ)`;
     if(file.size>20*1024*1024){ showAlert('error','Файл больше 20 МБ'); return; }
@@ -467,7 +470,7 @@
       .then(data=>{
         if(currentTimeoutId){ clearTimeout(currentTimeoutId); currentTimeoutId=null; }
         currentController=null; setScanning(false); cancelScanMainBtn.style.display='none';
-        if(!data||!data.ok){ showAlert('error',(data&&data.error)?data.error:'Ошибка сканирования'); resultCard.style.display='none'; resultText.value=''; codeTypeEl.textContent=''; clearScanState(); return; }
+        if(!data||!data.ok){ showAlert('error',(data&&data.error)?data.error:'Ошибка сканирования'); resultCard.style.display='none'; resultText.value=''; codeTypeEl.textContent=''; openFormBtn.style.display='none'; openExcelBtn.style.display='none'; clearScanState(); return; }
         resultText.value=data.text||''; 
         codeTypeEl.textContent=`Тип кода: ${data.code_type||'—'}`; 
         resultCard.style.display='block'; 
@@ -475,10 +478,9 @@
         if(data.open_url){ openFormBtn.href=data.open_url; openFormBtn.style.display='inline-block'; } else { openFormBtn.style.display='none'; }
         if(data.form_type && TABULAR_FORMS.has(data.form_type)){ currentExcelData.text=data.text||''; currentExcelData.form_type=data.form_type; openExcelBtn.style.display='inline-block'; } else { openExcelBtn.style.display='none'; }
         
-        // Save state after successful scan
         saveScanState();
       })
-      .catch(err=>{ if(currentTimeoutId){ clearTimeout(currentTimeoutId); currentTimeoutId=null; } currentController=null; setScanning(false); cancelScanMainBtn.style.display='none'; if(err&&err.name==='AbortError') return; showAlert('error','Ошибка сети при сканировании'); resultText.value=''; codeTypeEl.textContent=''; clearScanState(); });
+      .catch(err=>{ if(currentTimeoutId){ clearTimeout(currentTimeoutId); currentTimeoutId=null; } currentController=null; setScanning(false); cancelScanMainBtn.style.display='none'; if(err&&err.name==='AbortError') return; showAlert('error','Ошибка сети при сканировании'); resultCard.style.display='none'; resultText.value=''; codeTypeEl.textContent=''; openFormBtn.style.display='none'; openExcelBtn.style.display='none'; clearScanState(); });
   }
 
   pickBtn.addEventListener('click',()=>fileInput.click());
