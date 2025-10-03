@@ -69,6 +69,7 @@
 
     <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:16px;">
       <button id="copyBtn" class="btn" type="button">Копировать</button>
+      <button id="saveTextBtn" class="btn" type="button">Сохранить текст</button>
       <button id="clearBtn" class="btn danger" type="button">Очистить</button>
       <a id="openFormBtn" class="btn" href="#" style="display:none;">Открыть форму</a>
       <button id="openExcelBtn" class="btn ok" type="button" style="display:none;">Сохранить в Excel</button>
@@ -90,6 +91,7 @@
   const codeTypeEl=document.getElementById('codeType');
   const resultText=document.getElementById('resultText');
   const copyBtn=document.getElementById('copyBtn');
+  const saveTextBtn=document.getElementById('saveTextBtn');
   const clearBtn=document.getElementById('clearBtn');
   const openFormBtn=document.getElementById('openFormBtn');
   const openExcelBtn=document.getElementById('openExcelBtn');
@@ -487,6 +489,39 @@
   dropzone.addEventListener('drop',e=>{ const dt=e.dataTransfer; if(dt&&dt.files&&dt.files.length){ const f=dt.files[0]; fileInput.files=dt.files; startScan(f);} });
   window.addEventListener('paste',(e)=>{ if(!e.clipboardData||!e.clipboardData.items) return; for(const item of e.clipboardData.items){ if(item.type.startsWith('image/')){ const blob=item.getAsFile(); if(blob){ const file=new File([blob],'clipboard.png',{type:blob.type||'image/png'}); startScan(file); break; } } } });
   copyBtn.addEventListener('click',async ()=>{ try{ await navigator.clipboard.writeText(resultText.value||''); showAlert('success','Скопировано'); setTimeout(clearAlert,1500);}catch{ showAlert('error','Не удалось скопировать'); } });
+  saveTextBtn.addEventListener('click',async ()=>{
+    const text=resultText.value||'';
+    if(!text){
+      showAlert('error','Нет текста для сохранения');
+      return;
+    }
+    
+    const defaultFilename='scan_result.txt';
+    const blob=new Blob([text],{type:'text/plain;charset=utf-8'});
+    
+    if(window.showSaveFilePicker){
+      try{
+        const handle=await window.showSaveFilePicker({
+          suggestedName:defaultFilename,
+          types:[{
+            description:'Текстовые файлы',
+            accept:{'text/plain':['.txt']}
+          }]
+        });
+        const writable=await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        showAlert('success','Файл успешно сохранен');
+        setTimeout(clearAlert,2000);
+      }catch(err){
+        if(err.name!=='AbortError'){
+          fallbackDownload(blob,defaultFilename);
+        }
+      }
+    }else{
+      fallbackDownload(blob,defaultFilename);
+    }
+  });
   clearBtn.addEventListener('click',()=>resetUI());
   cancelScanMainBtn.addEventListener('click',cancelMainScan);
   openExcelBtn.addEventListener('click',async ()=>{
