@@ -158,11 +158,14 @@
       if(state.previewSrc&&state.previewVisible){
         previewWrap.style.display='flex';
         previewImg.onload=()=>{
-          dynamicResize(previewImg);
+          // Ensure image maintains its size after load
+          previewImg.style.maxHeight='210px';
+          previewImg.style.minHeight='210px';
         };
         previewImg.src=state.previewSrc;
         // Apply sizing immediately in case image is cached
-        dynamicResize(previewImg);
+        previewImg.style.maxHeight='210px';
+        previewImg.style.minHeight='210px';
       }
       
       // Restore file info
@@ -170,14 +173,18 @@
         fileInfo.textContent=state.fileInfoText;
       }
       
-      // Restore results
-      resultText.value=state.text;
-      codeTypeEl.textContent=state.codeType||'';
-      autoGrow(resultText);
-      
+      // Restore results - text first, then size
       if(state.resultVisible){
         resultCard.style.display='block';
       }
+      
+      resultText.value=state.text;
+      codeTypeEl.textContent=state.codeType||'';
+      
+      // Force textarea to maintain size - defer to ensure DOM is ready
+      setTimeout(()=>{
+        autoGrow(resultText);
+      },0);
       
       // Restore buttons
       if(state.openFormVisible&&state.openFormHref){
