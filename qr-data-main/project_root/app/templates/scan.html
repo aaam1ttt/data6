@@ -219,7 +219,16 @@
       previewWrap.style.display='none'; 
       clearScanState();
     }
-    setScanning(false); resultCard.style.display='none'; openFormBtn.style.display='none'; openExcelBtn.style.display='none'; cancelScanMainBtn.style.display='none'; resultText.value=''; resultText.style.height=''; codeTypeEl.textContent=''; currentExcelData={text:'',form_type:''};
+    setScanning(false); 
+    resultCard.style.display='none'; 
+    openFormBtn.style.display='none'; 
+    openFormBtn.href='#';
+    openExcelBtn.style.display='none'; 
+    cancelScanMainBtn.style.display='none'; 
+    resultText.value=''; 
+    resultText.style.height=''; 
+    codeTypeEl.textContent=''; 
+    currentExcelData={text:'',form_type:''};
   }
   
   function cancelMainScan(){
@@ -457,15 +466,21 @@
   }
 
   function startScan(file){
-    resetUI(false);
+    // Полностью очищаем предыдущее состояние перед новым сканированием
+    resetUI(true);
     clearAlert();
     clearScanState();
+    
+    // Явно сбрасываем все поля результата
     resultCard.style.display='none';
     resultText.value='';
+    resultText.style.height='';
     codeTypeEl.textContent='';
     openFormBtn.style.display='none';
+    openFormBtn.href='#';
     openExcelBtn.style.display='none';
     currentExcelData={text:'',form_type:''};
+    
     fileInfo.textContent=`Размер: ${formatSize(file.size)} (макс. 20 МБ)`;
     if(file.size>20*1024*1024){ showAlert('error','Файл больше 20 МБ'); return; }
     clientPreview(file); setScanning(true); cancelScanMainBtn.style.display='inline-block';
@@ -626,6 +641,10 @@
     if(fromForm==='true'){
       sessionStorage.removeItem(FROM_FORM_KEY);
       restoreScanState();
+    }else{
+      // Явно очищаем все при входе на страницу не из формы
+      clearScanState();
+      resetUI(true);
     }
   });
   
