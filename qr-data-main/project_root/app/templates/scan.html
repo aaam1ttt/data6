@@ -130,9 +130,9 @@
   function setScanning(on){ scanOverlay.style.display=on?'block':'none'; if(on) previewWrap.style.display='flex'; }
   
   // State preservation functions
-  function saveScanState(){
+  function saveScanState(includePreview=true){
     const state={
-      previewSrc:previewImg.src,
+      previewSrc:includePreview?previewImg.src:'',
       text:resultText.value,
       codeType:codeTypeEl.textContent,
       fileInfoText:fileInfo.textContent,
@@ -140,7 +140,7 @@
       openFormVisible:openFormBtn.style.display!=='none',
       openExcelVisible:openExcelBtn.style.display!=='none',
       excelData:currentExcelData,
-      previewVisible:previewWrap.style.display!=='none',
+      previewVisible:includePreview&&previewWrap.style.display!=='none',
       resultVisible:resultCard.style.display!=='none'
     };
     sessionStorage.setItem(SCAN_STATE_KEY,JSON.stringify(state));
@@ -516,7 +516,8 @@
         if(data.open_url){ openFormBtn.href=data.open_url; openFormBtn.style.display='inline-block'; } else { openFormBtn.style.display='none'; }
         if(data.form_type && TABULAR_FORMS.has(data.form_type)){ currentExcelData.text=data.text||''; currentExcelData.form_type=data.form_type; openExcelBtn.style.display='inline-block'; } else { openExcelBtn.style.display='none'; }
         
-        saveScanState();
+        const isLoggedIn = {% if user %}true{% else %}false{% endif %};
+        saveScanState(isLoggedIn);
       })
       .catch(err=>{ if(currentTimeoutId){ clearTimeout(currentTimeoutId); currentTimeoutId=null; } currentController=null; setScanning(false); cancelScanMainBtn.style.display='none'; if(err&&err.name==='AbortError') return; showAlert('error','Ошибка сети при сканировании'); resultCard.style.display='none'; resultText.value=''; codeTypeEl.textContent=''; openFormBtn.style.display='none'; openExcelBtn.style.display='none'; clearScanState(); });
   }
@@ -649,6 +650,8 @@
   // Handle "открыть форму" button click - mark navigation as from form
   openFormBtn.addEventListener('click',()=>{
     sessionStorage.setItem(FROM_FORM_KEY,'true');
+    const isLoggedIn = {% if user %}true{% else %}false{% endif %};
+    saveScanState(isLoggedIn);
   });
   
   // Restore state on page load if returning from form
