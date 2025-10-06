@@ -1,45 +1,59 @@
-# Python virtual environment
-venv/
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
+.Python
+
+# Virtual environment
+venv/
+.venv/
+env/
+.env/
 
 # Flask
 instance/
+.webassets-cache
 .flaskenv
 
-# SQLite database
+# Database
 *.db
 *.sqlite
 *.sqlite3
+app/data/
 
-# Storage directories
-app/storage/
+# Storage
+app/storage/codes/
+app/storage/uploads/
 
-# OS/Editor files
-.DS_Store
-.vscode/
-*.swp
-*.swo
+# Environment
+.env
+.env.local
+.env.*.local
 
 # Logs
 *.log
 
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
+# OS
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Temporary files
+.tmp/
+temp/
+*.tmp

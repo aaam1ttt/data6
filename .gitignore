@@ -60,6 +60,11 @@ instance/
 *.sqlite3
 .env
 
+# Application specific
+qr-data-main/project_root/app/data/
+qr-data-main/project_root/app/storage/codes/
+qr-data-main/project_root/app/storage/uploads/
+
 # OS files
 .DS_Store
 .DS_Store?
