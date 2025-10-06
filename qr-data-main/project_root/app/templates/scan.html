@@ -504,6 +504,11 @@
         if(currentTimeoutId){ clearTimeout(currentTimeoutId); currentTimeoutId=null; }
         currentController=null; setScanning(false); cancelScanMainBtn.style.display='none';
         if(!data||!data.ok){ showAlert('error',(data&&data.error)?data.error:'Ошибка сканирования'); resultCard.style.display='none'; resultText.value=''; codeTypeEl.textContent=''; openFormBtn.style.display='none'; openExcelBtn.style.display='none'; clearScanState(); return; }
+        
+        // Явно очищаем старые значения перед установкой новых
+        resultText.value='';
+        codeTypeEl.textContent='';
+        
         resultText.value=data.text||''; 
         codeTypeEl.textContent=`Тип кода: ${data.code_type||'—'}`; 
         resultCard.style.display='block'; 
