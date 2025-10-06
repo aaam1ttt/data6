@@ -228,6 +228,14 @@
 
   async function saveSmart(){
     const fmt = document.getElementById('fmt').value;
+    const text = "{{ encoded }}";
+    const code_type = "{{ code_type or 'QR' }}";
+    
+    // Генерируем имя файла по умолчанию
+    const safeText = text.substring(0, 20).replace(/[^a-zA-Zа-яА-Я0-9]/g, '_');
+    const timestamp = new Date().toISOString().split('T')[0];
+    const suggested = `${code_type}_torg12_${timestamp}.${fmt}`;
+    
     if(!('showSaveFilePicker' in window)){
       document.getElementById('fsHint').style.display='block';
       document.getElementById('sfmt').value = fmt;
@@ -239,7 +247,7 @@
       document.getElementById('sf').submit();
       return;
     }
-    const suggested = 'torg12_code.'+fmt;
+    
     const handle = await window.showSaveFilePicker({
       suggestedName: suggested,
       types: [{description:'Изображение', accept:{'image/png':['.png'],'image/jpeg':['.jpg','.jpeg']}}]
